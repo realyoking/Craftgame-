@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>5</title>
+    <title>HumanCraft Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -17,12 +17,15 @@
             background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
             background-size: 30px 30px;
         }
+        .theme-dark .board-grid {
+            background-image: radial-gradient(#334155 1px, transparent 1px);
+            background-color: #0f172a;
+        }
         .item-card {
             will-change: transform;
             transition: transform 0.1s ease-out, box-shadow 0.2s ease;
+            z-index: 10;
         }
-
-        /* --- RARITY ANIMATIONS & STYLES --- */
         
         @keyframes goldShine {
             0% { transform: translateX(-150%) skewX(-25deg); }
@@ -30,14 +33,12 @@
             100% { transform: translateX(200%) skewX(-25deg); }
         }
 
-        /* Gold Styling */
         .rarity-gold {
             background: linear-gradient(135deg, #fbdf7e 0%, #f59e0b 50%, #d97706 100%) !important;
             border-color: #92400e !important;
             color: #451a03 !important;
             position: relative;
             overflow: hidden;
-            box-shadow: 0 4px 15px rgba(180, 83, 9, 0.3);
         }
         .rarity-gold::after {
             content: "";
@@ -47,7 +48,6 @@
             animation: goldShine 3s infinite ease-in-out;
         }
 
-        /* Diamond Styling */
         .rarity-diamond {
             background: linear-gradient(135deg, #e0f2fe 0%, #7dd3fc 50%, #0ea5e9 100%) !important;
             border-color: #0369a1 !important;
@@ -55,41 +55,69 @@
             box-shadow: 0 0 20px rgba(14, 165, 233, 0.5);
         }
 
-        /* Normal Solid Styling */
+        .rarity-shiny {
+            background: linear-gradient(135deg, #fdf4ff 0%, #f5d0fe 50%, #d946ef 100%) !important;
+            border-color: #701a75 !important;
+            color: #4a044e !important;
+            box-shadow: 0 0 15px rgba(217, 70, 239, 0.6);
+        }
+
         .rarity-normal {
             background: white !important;
             border-color: #e2e8f0 !important;
         }
 
+        .coin-pop {
+            animation: coin-jump 0.5s ease-out forwards;
+        }
+        @keyframes coin-jump {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-50px) scale(1.5); opacity: 0; }
+        }
+
+        @keyframes modal-pop {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-modal { animation: modal-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
         .custom-scroll::-webkit-scrollbar { width: 4px; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        
+        #announcementContainer {
+            transition: all 0.5s ease-in-out;
+        }
+        .announcement-hidden {
+            opacity: 0;
+            transform: translate(-50%, -20px) scale(0.9);
+            pointer-events: none;
+        }
     </style>
 </head>
-<body class="bg-slate-100 font-sans text-slate-900">
+<body class="bg-slate-100 font-sans text-slate-900 transition-colors duration-500" id="bodyRoot">
 
 <div id="app" class="flex h-screen w-full overflow-hidden">
     <!-- Sidebar -->
-    <div class="w-72 bg-white border-r border-slate-200 flex flex-col shadow-2xl z-30">
-        <div class="p-4 border-b border-slate-100">
-            <div class="flex items-center justify-between mb-4">
+    <div class="w-80 bg-white border-r border-slate-200 flex flex-col shadow-2xl z-30">
+        <div class="p-4 border-b border-slate-100 bg-white sticky top-0">
+            <div class="flex items-center justify-between mb-2">
                 <h1 class="text-xl font-black tracking-tight flex items-center gap-2 text-indigo-600">
                     <i data-lucide="sparkles" class="w-6 h-6"></i>
-                    HumanCraft
+                    HumanCraft <span id="prestigeBadge" class="hidden text-[10px] bg-amber-400 text-white px-1.5 py-0.5 rounded-md">★</span>
                 </h1>
-                <div class="flex gap-1">
-                    <button onclick="organizeBoard()" class="p-2 hover:bg-slate-100 rounded-lg text-slate-400" title="Organize Board">
-                        <i data-lucide="layers" class="w-4 h-4"></i>
-                    </button>
-                    <button onclick="clearBoard()" class="p-2 hover:bg-red-50 hover:text-red-500 rounded-lg text-slate-400" title="Clear Board UI">
-                        <i data-lucide="eraser" class="w-4 h-4"></i>
-                    </button>
-                    <button onclick="toggleResetModal(true)" class="p-2 hover:bg-rose-50 hover:text-rose-600 rounded-lg text-slate-400" title="Reset All Progress">
-                        <i data-lucide="trash-2" class="w-4 h-4"></i>
-                    </button>
+                <div class="flex items-center bg-amber-100 px-3 py-1 rounded-full border border-amber-200">
+                    <i data-lucide="coins" class="w-4 h-4 text-amber-600 mr-1.5"></i>
+                    <span id="coinBalance" class="font-black text-amber-700">0</span>
                 </div>
             </div>
 
-            <div class="relative">
+            <div class="flex gap-1 mb-4">
+                <button onclick="switchTab('inventory')" id="tabInv" class="flex-1 py-2 rounded-xl text-[10px] font-bold uppercase bg-indigo-600 text-white shadow-md">Inv</button>
+                <button onclick="switchTab('recipes')" id="tabRec" class="flex-1 py-2 rounded-xl text-[10px] font-bold uppercase bg-slate-100 text-slate-500 hover:bg-slate-200">Book</button>
+                <button onclick="switchTab('shop')" id="tabShop" class="flex-1 py-2 rounded-xl text-[10px] font-bold uppercase bg-slate-100 text-slate-500 hover:bg-slate-200">Shop</button>
+            </div>
+
+            <div id="inventoryControls" class="relative">
                 <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
                 <input 
                     type="text" 
@@ -101,7 +129,81 @@
             </div>
         </div>
         
-        <div id="inventoryList" class="flex-1 overflow-y-auto p-3 space-y-2 content-start custom-scroll"></div>
+        <!-- Inventory Tab -->
+        <div id="inventoryContainer" class="flex-1 overflow-y-auto p-3 space-y-2 content-start custom-scroll">
+            <div id="inventoryList" class="space-y-2"></div>
+        </div>
+
+        <!-- Recipe Book Tab -->
+        <div id="recipesContainer" class="hidden flex-1 overflow-y-auto p-3 space-y-2 content-start custom-scroll">
+            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2 mb-2">Recipe Guide</p>
+            <div id="recipeList" class="space-y-2"></div>
+        </div>
+
+        <!-- Shop Tab -->
+        <div id="shopContainer" class="hidden flex-1 overflow-y-auto p-4 space-y-4 custom-scroll">
+            <div class="bg-indigo-50 p-4 rounded-2xl border border-indigo-100">
+                <p class="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2">Upgrades</p>
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between bg-white p-3 rounded-xl border border-indigo-100">
+                        <div>
+                            <p class="font-bold text-sm">Double Coins</p>
+                            <p class="text-[10px] text-slate-400">Earn 2x coins per mix</p>
+                        </div>
+                        <button onclick="buyUpgrade('doubleCoins', 500)" id="btnUpgrade1" class="bg-amber-500 text-white px-3 py-1.5 rounded-lg text-xs font-black shadow-sm">500</button>
+                    </div>
+                    <div class="flex items-center justify-between bg-white p-3 rounded-xl border border-indigo-100">
+                        <div>
+                            <p class="font-bold text-sm">Auto-Bot</p>
+                            <p id="botLevelText" class="text-[10px] text-slate-400">Lv. 0 - Combines items</p>
+                        </div>
+                        <button onclick="upgradeBot()" id="btnBotUpgrade" class="bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-xs font-black shadow-sm">1000</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="space-y-3">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Gacha & Packs</p>
+                <button onclick="buyMysteryItem(150)" class="w-full flex items-center justify-between bg-white p-4 rounded-2xl border-2 border-slate-100 hover:border-indigo-300 transition-all active:scale-95">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+                            <i data-lucide="package"></i>
+                        </div>
+                        <div class="text-left">
+                            <p class="font-bold">Mystery Pack</p>
+                            <p class="text-[10px] text-slate-400">New random recipe</p>
+                        </div>
+                    </div>
+                    <span class="font-black text-amber-600 flex items-center gap-1"><i data-lucide="coins" class="w-3 h-3"></i> 150</span>
+                </button>
+
+                <button onclick="rollShinyGacha(200)" class="w-full flex items-center justify-between bg-white p-4 rounded-2xl border-2 border-slate-100 hover:border-pink-300 transition-all active:scale-95">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-gradient-to-br from-pink-500 to-purple-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+                            <i data-lucide="sparkles"></i>
+                        </div>
+                        <div class="text-left">
+                            <p class="font-bold">Shiny Gacha</p>
+                            <p class="text-[10px] text-slate-400">Roll for a Shiny element</p>
+                        </div>
+                    </div>
+                    <span class="font-black text-amber-600 flex items-center gap-1"><i data-lucide="coins" class="w-3 h-3"></i> 200</span>
+                </button>
+            </div>
+
+            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Settings & Theme</p>
+                <div class="flex gap-2 mb-4">
+                    <button onclick="setTheme('light')" class="flex-1 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold shadow-sm">Classic</button>
+                    <button onclick="setTheme('dark')" class="flex-1 py-2 bg-slate-800 text-white rounded-lg text-xs font-bold shadow-sm">Midnight</button>
+                </div>
+                <button onclick="prestige()" id="btnPrestige" class="hidden w-full py-3 bg-gradient-to-r from-amber-400 to-orange-500 text-white rounded-xl font-black text-xs uppercase shadow-lg mb-4">Prestige (x2 Coins)</button>
+                <button onclick="confirmReset()" class="w-full flex items-center justify-center gap-2 p-3 text-rose-500 font-bold text-[10px] uppercase hover:bg-rose-50 rounded-xl transition-colors">
+                    <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+                    Reset All Data
+                </button>
+            </div>
+        </div>
         
         <div class="p-4 border-t border-slate-100 bg-slate-50">
             <div class="flex justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
@@ -111,30 +213,57 @@
             <div class="h-2 w-full bg-slate-200 rounded-full overflow-hidden">
                 <div id="progressBar" class="h-full bg-indigo-600 transition-all duration-700" style="width: 0%"></div>
             </div>
+            <div class="flex gap-2 mt-4">
+                <button onclick="organizeBoard()" title="Organize Board" class="flex-1 p-2 bg-white border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors">
+                    <i data-lucide="layers" class="w-4 h-4 m-auto"></i>
+                </button>
+                <button onclick="clearBoard()" title="Clear Board" class="flex-1 p-2 bg-white border border-slate-200 rounded-lg text-slate-500 hover:bg-rose-50 hover:text-rose-500 transition-colors">
+                    <i data-lucide="eraser" class="w-4 h-4 m-auto"></i>
+                </button>
+            </div>
         </div>
     </div>
 
     <!-- Main Board -->
-    <div id="board" class="flex-1 relative bg-slate-50 overflow-hidden board-grid">
+    <div id="board" class="flex-1 relative bg-slate-50 overflow-hidden board-grid transition-colors duration-500">
+        <!-- Announcement Banner -->
+        <div id="announcementContainer" class="absolute top-4 left-1/2 -translate-x-1/2 z-20 w-full max-w-lg px-4">
+            <div id="announcement" class="bg-indigo-600/90 backdrop-blur-md text-white px-6 py-2 rounded-full shadow-xl flex items-center justify-between border border-indigo-400/50">
+                <span id="announcementText" class="text-xs font-black uppercase tracking-widest">Welcome back, Crafter!</span>
+                <i data-lucide="megaphone" class="w-4 h-4 opacity-50"></i>
+            </div>
+        </div>
+
         <div id="emptyState" class="absolute inset-0 flex flex-col items-center justify-center opacity-10 pointer-events-none text-center">
             <i data-lucide="plus" class="w-20 h-20 mb-4"></i>
             <p class="text-2xl font-black uppercase tracking-widest">Select items to begin</p>
         </div>
     </div>
 
-    <!-- Custom Reset Confirmation Modal -->
-    <div id="resetModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm hidden">
-        <div class="bg-white p-6 rounded-3xl shadow-2xl max-w-xs w-full mx-4">
-            <div class="text-rose-500 mb-4 flex justify-center">
-                <div class="p-3 bg-rose-50 rounded-full">
-                    <i data-lucide="alert-triangle" class="w-8 h-8"></i>
-                </div>
+    <!-- New Discovery Overlay -->
+    <div id="discoveryOverlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden" onclick="closeDiscovery()">
+        <div class="animate-modal bg-white rounded-3xl p-8 shadow-2xl border-4 border-indigo-500 text-center max-w-sm w-full mx-4" onclick="event.stopPropagation()">
+            <div class="mb-4">
+                <span id="discoveryTag" class="bg-indigo-100 text-indigo-600 px-4 py-1 rounded-full text-xs font-black tracking-widest uppercase">New Discovery!</span>
             </div>
-            <h3 class="text-xl font-black text-center mb-2">Reset Progress?</h3>
-            <p class="text-slate-500 text-center text-sm mb-6">This will permanently delete all your discoveries and reset the game.</p>
+            <div id="discoveryEmoji" class="text-8xl mb-4 drop-shadow-lg"></div>
+            <h2 id="discoveryName" class="text-3xl font-black text-slate-800 mb-2 uppercase tracking-tighter"></h2>
+            <p class="text-slate-400 text-sm mb-6">Added to your collection</p>
+            <button onclick="closeDiscovery()" class="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-indigo-200 active:scale-95 transition-transform">
+                Awesome!
+            </button>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="resetModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center hidden">
+        <div class="bg-white rounded-3xl p-6 shadow-2xl max-w-xs w-full mx-4 text-center">
+            <i data-lucide="alert-triangle" class="w-12 h-12 text-rose-500 mx-auto mb-4"></i>
+            <h3 class="text-lg font-black text-slate-800 mb-2 uppercase">Wipe Progress?</h3>
+            <p class="text-slate-500 text-sm mb-6">This will delete all your elements and coins. This cannot be undone!</p>
             <div class="flex gap-3">
-                <button onclick="toggleResetModal(false)" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 rounded-xl font-bold transition-colors">Cancel</button>
-                <button onclick="resetAllData()" class="flex-1 py-3 bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-bold transition-colors shadow-lg shadow-rose-200">Reset</button>
+                <button onclick="toggleResetModal(false)" class="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold text-sm">Cancel</button>
+                <button onclick="performReset()" class="flex-1 py-3 bg-rose-500 text-white rounded-xl font-bold text-sm">Yes, Reset</button>
             </div>
         </div>
     </div>
@@ -149,7 +278,10 @@
 </div>
 
 <script>
-    // --- ELEMENT CONFIGURATION ---
+    // --- CHANGE THIS FOR ANNOUNCEMENTS ---
+    const ANNOUNCEMENT_MESSAGE = "Update: Auto-Bot and Shiny Gacha added!";
+
+    // --- CONFIGURATION ---
     const RECIPES = {
         "Coco+Melon": { name: "Max", emoji: "🍔", rarity: "normal" },
         "Chester+Coco": { name: "Cornball", emoji: "🌽", rarity: "normal" },
@@ -158,31 +290,51 @@
         "Chester+Leo": { name: "Nigger Twins", emoji: "👨🏿‍❤️‍💋‍👨🏿", rarity: "gold" },
         "Max+Nigger Twins": { name: "Nigger Max", emoji: "👳🏿‍♂️🍔", rarity: "diamond" },
         "Max+Max": { name: "Fat Max", emoji: "🍔🍔", rarity: "normal" },
-        "Stone+Fire": { name: "Metal", emoji: "🤘", rarity: "normal" },
-        "Chester+Coco": { name: "Black Chester ", emoji: "🧕🏿", rarity: "diamond" },
-        "Stone+Fire": { name: "Metal", emoji: "🤘", rarity: "normal" },
-        "Fat Max+Fat Max":{ name: "hamburger", emoji: "🍔🍔🍔", rarity: "diamond" },
+        "Fat Max+Fat Max": { name: "Hamburger", emoji: "🍔🍔🍔", rarity: "gold" }
     };
 
     const INITIAL_ELEMENTS = [
         { name: "e", emoji: "👑️", rarity: "diamond" },
         { name: "Chester", emoji: "👳🏿‍♂️", rarity: "normal" },
         { name: "Melon", emoji: "🍉", rarity: "normal" },
-        { name: "Coco", emoji: "🥥", rarity: "normal" }
+        { name: "Coco", emoji: "🥥", rarity: "normal" },
+        { name: "Glass", emoji: "👓", rarity: "normal" },
+        { name: "Reels", emoji: "📱", rarity: "normal" }
     ];
 
     // --- STATE ---
-    let inventory = JSON.parse(localStorage.getItem('craft-inventory')) || [...INITIAL_ELEMENTS];
+    let state = {
+        inventory: JSON.parse(localStorage.getItem('hc-inventory')) || [...INITIAL_ELEMENTS],
+        coins: parseInt(localStorage.getItem('hc-coins')) || 0,
+        upgrades: JSON.parse(localStorage.getItem('hc-upgrades')) || { doubleCoins: false, botLevel: 0 },
+        prestigeCount: parseInt(localStorage.getItem('hc-prestige')) || 0,
+        theme: localStorage.getItem('hc-theme') || 'light',
+        searchTerm: "",
+        activeTab: 'inventory'
+    };
+
     let boardItems = [];
     let draggedId = null;
     let dragOffset = { x: 0, y: 0 };
     let animationFrame = null;
-    let searchTerm = "";
+    let autoBotInterval = null;
 
     function init() {
         lucide.createIcons();
+        
+        // Setup Announcement
+        const announcementContainer = document.getElementById('announcementContainer');
+        document.getElementById('announcementText').innerText = ANNOUNCEMENT_MESSAGE;
+        setTimeout(() => {
+            announcementContainer.classList.add('announcement-hidden');
+        }, 8000); // Disappear after 8 seconds
+
         renderInventory();
-        updateProgress();
+        renderRecipes();
+        setTheme(state.theme);
+        updateUI();
+        initAutoBot();
+        
         const board = document.getElementById('board');
         board.addEventListener('mousemove', onDragMove);
         board.addEventListener('touchmove', onDragMove, { passive: false });
@@ -190,24 +342,177 @@
         window.addEventListener('touchend', onDragEnd);
     }
 
+    // --- UI RENDERING ---
+    function updateUI() {
+        document.getElementById('coinBalance').innerText = state.coins;
+        const total = Object.keys(RECIPES).length + INITIAL_ELEMENTS.length;
+        document.getElementById('discoveryProgress').innerText = `${state.inventory.length} / ${total}`;
+        document.getElementById('progressBar').style.width = `${(state.inventory.length / total) * 100}%`;
+        
+        // Upgrade display
+        const up1 = document.getElementById('btnUpgrade1');
+        if (state.upgrades.doubleCoins) {
+            up1.innerText = "MAXED";
+            up1.disabled = true;
+            up1.className = "bg-slate-200 text-slate-400 px-3 py-1.5 rounded-lg text-xs font-black cursor-not-allowed";
+        }
+
+        const botBtn = document.getElementById('btnBotUpgrade');
+        const botText = document.getElementById('botLevelText');
+        if (state.upgrades.botLevel >= 5) {
+            botBtn.innerText = "MAXED";
+            botBtn.disabled = true;
+        } else {
+            botBtn.innerText = 1000 + (state.upgrades.botLevel * 1000);
+        }
+        botText.innerText = `Lv. ${state.upgrades.botLevel} - Speed: ${6 - state.upgrades.botLevel}s`;
+
+        // Prestige
+        const prestigeBadge = document.getElementById('prestigeBadge');
+        if (state.prestigeCount > 0) {
+            prestigeBadge.classList.remove('hidden');
+        }
+        if (state.inventory.length >= total) {
+            document.getElementById('btnPrestige').classList.remove('hidden');
+        }
+
+        saveState();
+    }
+
+    function switchTab(tab) {
+        state.activeTab = tab;
+        const containers = ['inventoryContainer', 'shopContainer', 'recipesContainer'];
+        const tabs = ['tabInv', 'tabShop', 'tabRec'];
+        
+        containers.forEach(c => document.getElementById(c).classList.add('hidden'));
+        tabs.forEach(t => {
+            const el = document.getElementById(t);
+            el.className = "flex-1 py-2 rounded-xl text-[10px] font-bold uppercase bg-slate-100 text-slate-500 hover:bg-slate-200";
+        });
+
+        if (tab === 'inventory') {
+            document.getElementById('inventoryContainer').classList.remove('hidden');
+            document.getElementById('tabInv').className = "flex-1 py-2 rounded-xl text-[10px] font-bold uppercase bg-indigo-600 text-white shadow-md";
+        } else if (tab === 'shop') {
+            document.getElementById('shopContainer').classList.remove('hidden');
+            document.getElementById('tabShop').className = "flex-1 py-2 rounded-xl text-[10px] font-bold uppercase bg-indigo-600 text-white shadow-md";
+        } else if (tab === 'recipes') {
+            document.getElementById('recipesContainer').classList.remove('hidden');
+            document.getElementById('tabRec').className = "flex-1 py-2 rounded-xl text-[10px] font-bold uppercase bg-indigo-600 text-white shadow-md";
+            renderRecipes();
+        }
+    }
+
     function renderInventory() {
         const list = document.getElementById('inventoryList');
         list.innerHTML = '';
-        const filtered = inventory.filter(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()));
-
+        const filtered = state.inventory.filter(item => item.name.toLowerCase().includes(state.searchTerm.toLowerCase()));
         filtered.forEach(item => {
             const btn = document.createElement('button');
             const rarityClass = `rarity-${item.rarity || 'normal'}`;
             btn.className = `w-full flex items-center gap-3 p-3 border-2 rounded-xl shadow-sm active:scale-95 transition-all text-left group ${rarityClass}`;
-            btn.innerHTML = `
-                <span class="text-2xl">${item.emoji}</span>
-                <span class="font-bold text-xs uppercase tracking-wider">${item.name}</span>
-                <i data-lucide="plus" class="w-4 h-4 ml-auto opacity-30 group-hover:opacity-100"></i>
-            `;
+            btn.innerHTML = `<span class="text-2xl">${item.emoji}</span><span class="font-bold text-xs uppercase tracking-wider text-slate-800">${item.name}</span><i data-lucide="plus" class="w-4 h-4 ml-auto opacity-30 group-hover:opacity-100"></i>`;
             btn.onclick = () => addToBoard(item);
             list.appendChild(btn);
         });
         lucide.createIcons();
+    }
+
+    function renderRecipes() {
+        const list = document.getElementById('recipeList');
+        list.innerHTML = '';
+        const unlockedNames = state.inventory.map(i => i.name);
+        
+        Object.keys(RECIPES).forEach(key => {
+            const result = RECIPES[key];
+            const isUnlocked = unlockedNames.includes(result.name);
+            const div = document.createElement('div');
+            div.className = `p-3 rounded-xl border-2 flex items-center gap-3 ${isUnlocked ? 'bg-white border-slate-100' : 'bg-slate-50 border-slate-200 opacity-60'}`;
+            div.innerHTML = `
+                <span class="text-xl">${isUnlocked ? result.emoji : '❓'}</span>
+                <div>
+                    <p class="font-black text-[10px] uppercase tracking-tighter">${isUnlocked ? result.name : 'Unknown Discovery'}</p>
+                    <p class="text-[9px] text-slate-400 italic">${key.split('+').join(' + ')}</p>
+                </div>
+            `;
+            list.appendChild(div);
+        });
+    }
+
+    function setTheme(t) {
+        state.theme = t;
+        const body = document.getElementById('bodyRoot');
+        if (t === 'dark') {
+            body.classList.add('theme-dark');
+        } else {
+            body.classList.remove('theme-dark');
+        }
+        saveState();
+    }
+
+    function initAutoBot() {
+        if (autoBotInterval) clearInterval(autoBotInterval);
+        if (state.upgrades.botLevel > 0) {
+            const speed = (6 - state.upgrades.botLevel) * 1000;
+            autoBotInterval = setInterval(autoBotTick, speed);
+        }
+    }
+
+    function upgradeBot() {
+        const cost = 1000 + (state.upgrades.botLevel * 1000);
+        if (state.coins >= cost) {
+            state.coins -= cost;
+            state.upgrades.botLevel++;
+            showNotification(`Bot Level Up! (Lv.${state.upgrades.botLevel})`, 'success');
+            initAutoBot();
+            updateUI();
+        } else {
+            showNotification("Too expensive!", "error");
+        }
+    }
+
+    function autoBotTick() {
+        if (boardItems.length < 2) return;
+        for (let i = 0; i < boardItems.length; i++) {
+            for (let j = i + 1; j < boardItems.length; j++) {
+                const a = boardItems[i];
+                const b = boardItems[j];
+                const pair = [a.name, b.name].sort().join('+');
+                if (RECIPES[pair]) {
+                    const elA = document.getElementById(`item-${a.id}`);
+                    const elB = document.getElementById(`item-${b.id}`);
+                    if(elA && elB) {
+                        elA.style.borderColor = "#6366f1";
+                        elB.style.borderColor = "#6366f1";
+                        setTimeout(() => combine(a, b), 400);
+                    }
+                    return;
+                }
+            }
+        }
+    }
+
+    function rollShinyGacha(price) {
+        if (state.coins >= price) {
+            state.coins -= price;
+            const randomOwned = state.inventory[Math.floor(Math.random() * state.inventory.length)];
+            const shinyItem = { ...randomOwned, rarity: 'shiny' };
+            showDiscoveryModal(shinyItem, "Shiny Gacha!");
+            updateUI();
+        } else {
+            showNotification("Need more coins!", "error");
+        }
+    }
+
+    function prestige() {
+        const total = Object.keys(RECIPES).length + INITIAL_ELEMENTS.length;
+        if (state.inventory.length >= total) {
+            state.prestigeCount++;
+            state.inventory = [...INITIAL_ELEMENTS];
+            state.coins = 0;
+            performReset(true); 
+            showNotification(`PRESTIGE LEVEL ${state.prestigeCount}!`, 'success');
+        }
     }
 
     function addToBoard(element) {
@@ -225,10 +530,7 @@
         const rarityClass = `rarity-${item.rarity || 'normal'}`;
         div.className = `absolute px-5 py-2.5 border-2 rounded-2xl shadow-lg cursor-grab active:cursor-grabbing flex items-center gap-3 item-card ${rarityClass}`;
         div.style.transform = `translate3d(${item.x}px, ${item.y}px, 0)`;
-        div.innerHTML = `
-            <span class="text-2xl pointer-events-none">${item.emoji}</span>
-            <span class="font-black text-xs uppercase tracking-tight pointer-events-none">${item.name}</span>
-        `;
+        div.innerHTML = `<span class="text-2xl pointer-events-none">${item.emoji}</span><span class="font-black text-xs uppercase tracking-tight pointer-events-none">${item.name}</span>`;
         const start = (e) => onDragStart(item.id, e);
         div.onmousedown = start;
         div.ontouchstart = start;
@@ -238,12 +540,14 @@
     function onDragStart(id, e) {
         draggedId = id;
         const item = boardItems.find(i => i.id === id);
+        if(!item) return;
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        const yOffset = e.touches ? 60 : 0; 
         dragOffset.x = clientX - item.x;
-        dragOffset.y = clientY - item.y;
+        dragOffset.y = clientY - item.y + yOffset;
         const el = document.getElementById(`item-${id}`);
-        el.style.zIndex = "100";
+        if (el) el.style.zIndex = "100";
     }
 
     function onDragMove(e) {
@@ -251,15 +555,15 @@
         if (e.cancelable) e.preventDefault();
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
         const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-
         if (animationFrame) cancelAnimationFrame(animationFrame);
         animationFrame = requestAnimationFrame(() => {
             const item = boardItems.find(i => i.id === draggedId);
             if (!item) return;
+            const yOffset = e.touches ? 60 : 0;
             item.x = clientX - dragOffset.x;
-            item.y = clientY - dragOffset.y;
+            item.y = clientY - dragOffset.y + yOffset;
             const el = document.getElementById(`item-${draggedId}`);
-            if (el) el.style.transform = `translate3d(${item.x}px, ${item.y}px, 0) scale(1.05)`;
+            if (el) el.style.transform = `translate3d(${item.x}px, ${item.y}px, 0) scale(1.1)`;
         });
     }
 
@@ -267,13 +571,14 @@
         if (!draggedId) return;
         const item = boardItems.find(i => i.id === draggedId);
         const el = document.getElementById(`item-${draggedId}`);
-        el.style.zIndex = "10";
-        el.style.transform = `translate3d(${item.x}px, ${item.y}px, 0)`;
-
+        if(el) {
+            el.style.zIndex = "10";
+            el.style.transform = `translate3d(${item.x}px, ${item.y}px, 0)`;
+        }
         const others = boardItems.filter(i => i.id !== draggedId);
         for (const other of others) {
             const dist = Math.sqrt(Math.pow(item.x - other.x, 2) + Math.pow(item.y - other.y, 2));
-            if (dist < 70) {
+            if (dist < 80) {
                 combine(item, other);
                 break;
             }
@@ -286,85 +591,115 @@
         const result = RECIPES[pair];
         if (result) {
             boardItems = boardItems.filter(i => i.id !== a.id && i.id !== b.id);
-            document.getElementById(`item-${a.id}`).remove();
-            document.getElementById(`item-${b.id}`).remove();
+            document.getElementById(`item-${a.id}`)?.remove();
+            document.getElementById(`item-${b.id}`)?.remove();
             
             const newItem = { ...result, id: Date.now() + Math.random(), x: b.x, y: b.y };
             boardItems.push(newItem);
             const newEl = createBoardElement(newItem);
             document.getElementById('board').appendChild(newEl);
             
-            // Pop effect
             newEl.style.transform = `translate3d(${newItem.x}px, ${newItem.y}px, 0) scale(1.6)`;
-            setTimeout(() => newEl.style.transform = `translate3d(${newItem.x}px, ${newItem.y}px, 0) scale(1)`, 150);
+            setTimeout(() => { if(newEl) newEl.style.transform = `translate3d(${newItem.x}px, ${newItem.y}px, 0) scale(1)`; }, 150);
 
-            if (!inventory.find(i => i.name === result.name)) {
-                inventory.push(result);
-                localStorage.setItem('craft-inventory', JSON.stringify(inventory));
+            let coinAmount = state.upgrades.doubleCoins ? 20 : 10;
+            if (state.prestigeCount > 0) coinAmount *= (state.prestigeCount + 1);
+            state.coins += coinAmount;
+            spawnCoinText(b.x, b.y, `+${coinAmount}`);
+
+            if (!state.inventory.find(i => i.name === result.name)) {
+                state.inventory.push(result);
                 renderInventory();
-                updateProgress();
-                showNotification(`Unlocked ${result.rarity || 'New'} Element: ${result.name}!`, 'success');
+                showDiscoveryModal(result);
             }
+            updateUI();
         } else {
-            showNotification(`No combination for ${a.name} & ${b.name}`, 'error');
+            showNotification(`Unknown Combo`, 'error');
         }
     }
 
-    function handleSearch(val) { searchTerm = val; renderInventory(); }
+    function showDiscoveryModal(item, customTag) {
+        const overlay = document.getElementById('discoveryOverlay');
+        const tagEl = document.getElementById('discoveryTag');
+        document.getElementById('discoveryEmoji').innerText = item.emoji;
+        document.getElementById('discoveryName').innerText = item.name;
+        tagEl.innerText = customTag || "New Discovery!";
+        overlay.classList.remove('hidden');
+    }
 
-    function updateProgress() {
-        const total = Object.keys(RECIPES).length + INITIAL_ELEMENTS.length;
-        document.getElementById('discoveryProgress').innerText = `${inventory.length} / ${total}`;
-        document.getElementById('progressBar').style.width = `${(inventory.length / total) * 100}%`;
+    function closeDiscovery() { document.getElementById('discoveryOverlay').classList.add('hidden'); }
+
+    function buyUpgrade(type, price) {
+        if (state.coins >= price && !state.upgrades[type]) {
+            state.coins -= price; state.upgrades[type] = true;
+            showNotification("Upgrade Unlocked!", "success"); updateUI();
+        } else if (state.coins < price) showNotification("Poor!", "error");
+    }
+
+    function buyMysteryItem(price) {
+        if (state.coins >= price) {
+            const unlockedNames = state.inventory.map(i => i.name);
+            const locked = Object.values(RECIPES).filter(r => !unlockedNames.includes(r.name));
+            if (locked.length > 0) {
+                state.coins -= price; const gift = locked[Math.floor(Math.random() * locked.length)];
+                state.inventory.push(gift); renderInventory(); updateUI(); showDiscoveryModal(gift);
+            } else showNotification("Found them all!", "success");
+        } else showNotification("Need coins!", "error");
+    }
+
+    function confirmReset() { toggleResetModal(true); }
+
+    function toggleResetModal(show) { document.getElementById('resetModal').classList.toggle('hidden', !show); }
+
+    function performReset(soft = false) {
+        if(!soft) localStorage.clear();
+        state = soft ? state : { inventory: [...INITIAL_ELEMENTS], coins: 0, upgrades: { doubleCoins: false, botLevel: 0 }, prestigeCount: 0, searchTerm: "", activeTab: 'inventory', theme: 'light' };
+        clearBoard(); renderInventory(); updateUI(); toggleResetModal(false);
+        if(!soft) showNotification("Game Reset", "error");
+    }
+
+    function spawnCoinText(x, y, text) {
+        const span = document.createElement('div');
+        span.className = 'absolute font-black text-amber-500 z-[200] coin-pop pointer-events-none text-xl';
+        span.style.left = x + 'px'; span.style.top = y + 'px'; span.innerText = text;
+        document.getElementById('board').appendChild(span);
+        setTimeout(() => span.remove(), 600);
+    }
+
+    function saveState() {
+        localStorage.setItem('hc-inventory', JSON.stringify(state.inventory));
+        localStorage.setItem('hc-coins', state.coins);
+        localStorage.setItem('hc-upgrades', JSON.stringify(state.upgrades));
+        localStorage.setItem('hc-prestige', state.prestigeCount);
+        localStorage.setItem('hc-theme', state.theme);
+    }
+
+    function handleSearch(val) { state.searchTerm = val; renderInventory(); }
+
+    function clearBoard() { 
+        boardItems = []; 
+        document.querySelectorAll('.item-card').forEach(i => i.remove()); 
+        document.getElementById('emptyState').style.display = 'flex'; 
+    }
+
+    function organizeBoard() {
+        const rect = document.getElementById('board').getBoundingClientRect();
+        const cols = Math.floor((rect.width - 60) / 140);
+        boardItems.forEach((item, idx) => {
+            item.x = 40 + (idx % cols) * 140; item.y = 80 + Math.floor(idx / cols) * 70;
+            const el = document.getElementById(`item-${item.id}`);
+            if (el) el.style.transform = `translate3d(${item.x}px, ${item.y}px, 0)`;
+        });
     }
 
     function showNotification(text, type) {
         const note = document.getElementById('notification');
-        const content = document.getElementById('notificationContent');
         document.getElementById('notificationText').innerText = text;
         note.classList.remove('hidden');
-        content.className = `px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-4 border-2 bg-white ${type === 'success' ? 'border-emerald-500 text-emerald-600' : 'border-rose-500 text-rose-600'}`;
+        document.getElementById('notificationContent').className = `px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-4 border-2 bg-white ${type === 'success' ? 'border-emerald-500 text-emerald-600' : 'border-rose-500 text-rose-600'}`;
         document.getElementById('notificationIcon').setAttribute('data-lucide', type === 'success' ? 'sparkles' : 'x');
         lucide.createIcons();
-        setTimeout(() => note.classList.add('hidden'), 2500);
-    }
-
-    function clearBoard() {
-        boardItems = [];
-        document.querySelectorAll('.item-card').forEach(i => i.remove());
-        document.getElementById('emptyState').style.display = 'flex';
-    }
-
-    function toggleResetModal(show) {
-        const modal = document.getElementById('resetModal');
-        if (show) modal.classList.remove('hidden');
-        else modal.classList.add('hidden');
-    }
-
-    function resetAllData() {
-        // Clear board
-        clearBoard();
-        // Reset inventory to initial
-        inventory = [...INITIAL_ELEMENTS];
-        localStorage.setItem('craft-inventory', JSON.stringify(inventory));
-        // Update UI
-        renderInventory();
-        updateProgress();
-        // Close modal
-        toggleResetModal(false);
-        showNotification("Data Reset Successfully", "success");
-    }
-
-    function organizeBoard() {
-        const board = document.getElementById('board');
-        const rect = board.getBoundingClientRect();
-        const cols = Math.floor((rect.width - 60) / 140);
-        boardItems.forEach((item, idx) => {
-            item.x = 40 + (idx % cols) * 140;
-            item.y = 40 + Math.floor(idx / cols) * 70;
-            const el = document.getElementById(`item-${item.id}`);
-            if (el) el.style.transform = `translate3d(${item.x}px, ${item.y}px, 0)`;
-        });
+        setTimeout(() => note.classList.add('hidden'), 2000);
     }
 
     window.onload = init;
