@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HumanCraft</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            overscroll-behavior: none;
+        }
+        .board-grid {
+            background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+        .item-card {
+            will-change: transform;
+            transition: transform 0.1s ease-out, box-shadow 0.2s ease;
+        }
+
+        /* --- RARITY ANIMATIONS & STYLES --- */
+        
+        @keyframes goldShine {
+            0% { transform: translateX(-150%) skewX(-25deg); }
+            50% { transform: translateX(200%) skewX(-25deg); }
+            100% { transform: translateX(200%) skewX(-25deg); }
+        }
+
+        /* Gold Styling */
+        .rarity-gold {
+            background: linear-gradient(135deg, #fbdf7e 0%, #f59e0b 50%, #d97706 100%) !important;
+            border-color: #92400e !important;
+            color: #451a03 !important;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(180, 83, 9, 0.3);
+        }
+        .rarity-gold::after {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; width: 40%; height: 100%;
+            background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.6), transparent);
+            animation: goldShine 3s infinite ease-in-out;
+        }
+
+        /* Diamond Styling */
+        .rarity-diamond {
+            background: linear-gradient(135deg, #e0f2fe 0%, #7dd3fc 50%, #0ea5e9 100%) !important;
+            border-color: #0369a1 !important;
+            color: #0c4a6e !important;
+            box-shadow: 0 0 20px rgba(14, 165, 233, 0.5);
+        }
+
+        /* Normal Solid Styling */
+        .rarity-normal {
+            background: white !important;
+            border-color: #e2e8f0 !important;
+        }
+
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-slate-100 font-sans text-slate-900">
+
+<div id="app" class="flex h-screen w-full overflow-hidden">
+    <!-- Sidebar -->
+    <div class="w-72 bg-white border-r border-slate-200 flex flex-col shadow-2xl z-30">
+        <div class="p-4 border-b border-slate-100">
+            <div class="flex items-center justify-between mb-4">
+                <h1 class="text-xl font-black tracking-tight flex items-center gap-2 text-indigo-600">
+                    <i data-lucide="sparkles" class="w-6 h-6"></i>
+                    HumanCraft
+                </h1>
+                <div class="flex gap-1">
+                    <button onclick="organizeBoard()" class="p-2 hover:bg-slate-100 rounded-lg text-slate-400">
+                        <i data-lucide="layers" class="w-4 h-4"></i>
+                    </button>
+                    <button onclick="clearBoard()" class="p-2 hover:bg-red-50 hover:text-red-500 rounded-lg text-slate-400">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="relative">
+                <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
+                <input 
+                    type="text" 
+                    id="searchBar"
+                    placeholder="Search elements..."
+                    oninput="handleSearch(this.value)"
+                    class="w-full pl-9 pr-4 py-2 bg-slate-100 border-none rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+            </div>
+        </div>
+        
+        <div id="inventoryList" class="flex-1 overflow-y-auto p-3 space-y-2 content-start custom-scroll"></div>
+        
+        <div class="p-4 border-t border-slate-100 bg-slate-50">
+            <div class="flex justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                <span>Discoveries</span>
+                <span id="discoveryProgress">0 / 0</span>
+            </div>
+            <div class="h-2 w-full bg-slate-200 rounded-full overflow-hidden">
+                <div id="progressBar" class="h-full bg-indigo-600 transition-all duration-700" style="width: 0%"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Board -->
+    <div id="board" class="flex-1 relative bg-slate-50 overflow-hidden board-grid">
+        <div id="emptyState" class="absolute inset-0 flex flex-col items-center justify-center opacity-10 pointer-events-none text-center">
+            <i data-lucide="plus" class="w-20 h-20 mb-4"></i>
+            <p class="text-2xl font-black uppercase tracking-widest">Select items to begin</p>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div id="notification" class="fixed top-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none hidden">
+        <div id="notificationContent" class="px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-4 border-2 bg-white">
+            <i id="notificationIcon" class="w-6 h-6"></i>
+            <span id="notificationText" class="font-black uppercase tracking-tight text-lg"></span>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- ELEMENT CONFIGURATION ---
+    const RECIPES = {
+        "Coco+Melon": { name: "Max", emoji: "🍔", rarity: "normal" },
+        "Chester+Coco": { name: "Cornball", emoji: "🌽", rarity: "normal" },
+        "Cornball+Max": { name: "Cashoh", emoji: "👤", rarity: "gold" },
+        "Air+Earth": { name: "Dust", emoji: "🌫️", rarity: "normal" },
+        "Air+Fire": { name: "Energy", emoji: "⚡", rarity: "gold" },
+        "Lava+Water": { name: "Obsidian", emoji: "💎", rarity: "diamond" },
+        "Lava+Air": { name: "Stone", emoji: "🪨", rarity: "normal" },
+        "Stone+Fire": { name: "Metal", emoji: "🤘", rarity: "normal" },
+    };
+
+    const INITIAL_ELEMENTS = [
+        { name: "e", emoji: "👑️", rarity: "diamond" },
+        { name: "Chester", emoji: "👳🏿‍♂️", rarity: "normal" },
+        { name: "Melon", emoji: "🍉", rarity: "normal" },
+        { name: "Coco", emoji: "🥥", rarity: "normal" }
+    ];
+
+    // --- STATE ---
+    let inventory = JSON.parse(localStorage.getItem('craft-inventory')) || [...INITIAL_ELEMENTS];
+    let boardItems = [];
+    let draggedId = null;
+    let dragOffset = { x: 0, y: 0 };
+    let animationFrame = null;
+    let searchTerm = "";
+
+    function init() {
+        lucide.createIcons();
+        renderInventory();
+        updateProgress();
+        const board = document.getElementById('board');
+        board.addEventListener('mousemove', onDragMove);
+        board.addEventListener('touchmove', onDragMove, { passive: false });
+        window.addEventListener('mouseup', onDragEnd);
+        window.addEventListener('touchend', onDragEnd);
+    }
+
+    function renderInventory() {
+        const list = document.getElementById('inventoryList');
+        list.innerHTML = '';
+        const filtered = inventory.filter(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()));
+
+        filtered.forEach(item => {
+            const btn = document.createElement('button');
+            const rarityClass = `rarity-${item.rarity || 'normal'}`;
+            btn.className = `w-full flex items-center gap-3 p-3 border-2 rounded-xl shadow-sm active:scale-95 transition-all text-left group ${rarityClass}`;
+            btn.innerHTML = `
+                <span class="text-2xl">${item.emoji}</span>
+                <span class="font-bold text-xs uppercase tracking-wider">${item.name}</span>
+                <i data-lucide="plus" class="w-4 h-4 ml-auto opacity-30 group-hover:opacity-100"></i>
+            `;
+            btn.onclick = () => addToBoard(item);
+            list.appendChild(btn);
+        });
+        lucide.createIcons();
+    }
+
+    function addToBoard(element) {
+        const board = document.getElementById('board');
+        const rect = board.getBoundingClientRect();
+        const item = { ...element, id: Date.now() + Math.random(), x: rect.width / 2 - 60, y: rect.height / 2 - 25 };
+        boardItems.push(item);
+        board.appendChild(createBoardElement(item));
+        document.getElementById('emptyState').style.display = 'none';
+    }
+
+    function createBoardElement(item) {
+        const div = document.createElement('div');
+        div.id = `item-${item.id}`;
+        const rarityClass = `rarity-${item.rarity || 'normal'}`;
+        div.className = `absolute px-5 py-2.5 border-2 rounded-2xl shadow-lg cursor-grab active:cursor-grabbing flex items-center gap-3 item-card ${rarityClass}`;
+        div.style.transform = `translate3d(${item.x}px, ${item.y}px, 0)`;
+        div.innerHTML = `
+            <span class="text-2xl pointer-events-none">${item.emoji}</span>
+            <span class="font-black text-xs uppercase tracking-tight pointer-events-none">${item.name}</span>
+        `;
+        const start = (e) => onDragStart(item.id, e);
+        div.onmousedown = start;
+        div.ontouchstart = start;
+        return div;
+    }
+
+    function onDragStart(id, e) {
+        draggedId = id;
+        const item = boardItems.find(i => i.id === id);
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        dragOffset.x = clientX - item.x;
+        dragOffset.y = clientY - item.y;
+        const el = document.getElementById(`item-${id}`);
+        el.style.zIndex = "100";
+    }
+
+    function onDragMove(e) {
+        if (!draggedId) return;
+        if (e.cancelable) e.preventDefault();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+        if (animationFrame) cancelAnimationFrame(animationFrame);
+        animationFrame = requestAnimationFrame(() => {
+            const item = boardItems.find(i => i.id === draggedId);
+            if (!item) return;
+            item.x = clientX - dragOffset.x;
+            item.y = clientY - dragOffset.y;
+            const el = document.getElementById(`item-${draggedId}`);
+            if (el) el.style.transform = `translate3d(${item.x}px, ${item.y}px, 0) scale(1.05)`;
+        });
+    }
+
+    function onDragEnd() {
+        if (!draggedId) return;
+        const item = boardItems.find(i => i.id === draggedId);
+        const el = document.getElementById(`item-${draggedId}`);
+        el.style.zIndex = "10";
+        el.style.transform = `translate3d(${item.x}px, ${item.y}px, 0)`;
+
+        const others = boardItems.filter(i => i.id !== draggedId);
+        for (const other of others) {
+            const dist = Math.sqrt(Math.pow(item.x - other.x, 2) + Math.pow(item.y - other.y, 2));
+            if (dist < 70) {
+                combine(item, other);
+                break;
+            }
+        }
+        draggedId = null;
+    }
+
+    function combine(a, b) {
+        const pair = [a.name, b.name].sort().join('+');
+        const result = RECIPES[pair];
+        if (result) {
+            boardItems = boardItems.filter(i => i.id !== a.id && i.id !== b.id);
+            document.getElementById(`item-${a.id}`).remove();
+            document.getElementById(`item-${b.id}`).remove();
+            
+            const newItem = { ...result, id: Date.now() + Math.random(), x: b.x, y: b.y };
+            boardItems.push(newItem);
+            const newEl = createBoardElement(newItem);
+            document.getElementById('board').appendChild(newEl);
+            
+            // Pop effect
+            newEl.style.transform = `translate3d(${newItem.x}px, ${newItem.y}px, 0) scale(1.6)`;
+            setTimeout(() => newEl.style.transform = `translate3d(${newItem.x}px, ${newItem.y}px, 0) scale(1)`, 150);
+
+            if (!inventory.find(i => i.name === result.name)) {
+                inventory.push(result);
+                localStorage.setItem('craft-inventory', JSON.stringify(inventory));
+                renderInventory();
+                updateProgress();
+                showNotification(`Unlocked ${result.rarity || 'New'} Element: ${result.name}!`, 'success');
+            }
+        } else {
+            showNotification(`No combination for ${a.name} & ${b.name}`, 'error');
+        }
+    }
+
+    function handleSearch(val) { searchTerm = val; renderInventory(); }
+
+    function updateProgress() {
+        const total = Object.keys(RECIPES).length + INITIAL_ELEMENTS.length;
+        document.getElementById('discoveryProgress').innerText = `${inventory.length} / ${total}`;
+        document.getElementById('progressBar').style.width = `${(inventory.length / total) * 100}%`;
+    }
+
+    function showNotification(text, type) {
+        const note = document.getElementById('notification');
+        const content = document.getElementById('notificationContent');
+        document.getElementById('notificationText').innerText = text;
+        note.classList.remove('hidden');
+        content.className = `px-8 py-4 rounded-2xl shadow-2xl flex items-center gap-4 border-2 bg-white ${type === 'success' ? 'border-emerald-500 text-emerald-600' : 'border-rose-500 text-rose-600'}`;
+        document.getElementById('notificationIcon').setAttribute('data-lucide', type === 'success' ? 'sparkles' : 'x');
+        lucide.createIcons();
+        setTimeout(() => note.classList.add('hidden'), 2500);
+    }
+
+    function clearBoard() {
+        boardItems = [];
+        document.querySelectorAll('.item-card').forEach(i => i.remove());
+        document.getElementById('emptyState').style.display = 'flex';
+    }
+
+    function organizeBoard() {
+        const board = document.getElementById('board');
+        const rect = board.getBoundingClientRect();
+        const cols = Math.floor((rect.width - 60) / 140);
+        boardItems.forEach((item, idx) => {
+            item.x = 40 + (idx % cols) * 140;
+            item.y = 40 + Math.floor(idx / cols) * 70;
+            const el = document.getElementById(`item-${item.id}`);
+            if (el) el.style.transform = `translate3d(${item.x}px, ${item.y}px, 0)`;
+        });
+    }
+
+    window.onload = init;
+</script>
+</body>
+</html>
