@@ -1,0 +1,1 @@
+// JavaScript content extracted from the index.html script section goes here.
