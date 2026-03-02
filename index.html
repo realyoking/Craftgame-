@@ -77,10 +77,13 @@
                     HumanCraft
                 </h1>
                 <div class="flex gap-1">
-                    <button onclick="organizeBoard()" class="p-2 hover:bg-slate-100 rounded-lg text-slate-400">
+                    <button onclick="organizeBoard()" class="p-2 hover:bg-slate-100 rounded-lg text-slate-400" title="Organize Board">
                         <i data-lucide="layers" class="w-4 h-4"></i>
                     </button>
-                    <button onclick="clearBoard()" class="p-2 hover:bg-red-50 hover:text-red-500 rounded-lg text-slate-400">
+                    <button onclick="clearBoard()" class="p-2 hover:bg-red-50 hover:text-red-500 rounded-lg text-slate-400" title="Clear Board UI">
+                        <i data-lucide="eraser" class="w-4 h-4"></i>
+                    </button>
+                    <button onclick="toggleResetModal(true)" class="p-2 hover:bg-rose-50 hover:text-rose-600 rounded-lg text-slate-400" title="Reset All Progress">
                         <i data-lucide="trash-2" class="w-4 h-4"></i>
                     </button>
                 </div>
@@ -116,6 +119,23 @@
         <div id="emptyState" class="absolute inset-0 flex flex-col items-center justify-center opacity-10 pointer-events-none text-center">
             <i data-lucide="plus" class="w-20 h-20 mb-4"></i>
             <p class="text-2xl font-black uppercase tracking-widest">Select items to begin</p>
+        </div>
+    </div>
+
+    <!-- Custom Reset Confirmation Modal -->
+    <div id="resetModal" class="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 backdrop-blur-sm hidden">
+        <div class="bg-white p-6 rounded-3xl shadow-2xl max-w-xs w-full mx-4">
+            <div class="text-rose-500 mb-4 flex justify-center">
+                <div class="p-3 bg-rose-50 rounded-full">
+                    <i data-lucide="alert-triangle" class="w-8 h-8"></i>
+                </div>
+            </div>
+            <h3 class="text-xl font-black text-center mb-2">Reset Progress?</h3>
+            <p class="text-slate-500 text-center text-sm mb-6">This will permanently delete all your discoveries and reset the game.</p>
+            <div class="flex gap-3">
+                <button onclick="toggleResetModal(false)" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 rounded-xl font-bold transition-colors">Cancel</button>
+                <button onclick="resetAllData()" class="flex-1 py-3 bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-bold transition-colors shadow-lg shadow-rose-200">Reset</button>
+            </div>
         </div>
     </div>
 
@@ -310,6 +330,26 @@
         boardItems = [];
         document.querySelectorAll('.item-card').forEach(i => i.remove());
         document.getElementById('emptyState').style.display = 'flex';
+    }
+
+    function toggleResetModal(show) {
+        const modal = document.getElementById('resetModal');
+        if (show) modal.classList.remove('hidden');
+        else modal.classList.add('hidden');
+    }
+
+    function resetAllData() {
+        // Clear board
+        clearBoard();
+        // Reset inventory to initial
+        inventory = [...INITIAL_ELEMENTS];
+        localStorage.setItem('craft-inventory', JSON.stringify(inventory));
+        // Update UI
+        renderInventory();
+        updateProgress();
+        // Close modal
+        toggleResetModal(false);
+        showNotification("Data Reset Successfully", "success");
     }
 
     function organizeBoard() {
