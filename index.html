@@ -606,7 +606,14 @@
                     <div>
                         <p id="profileCardDisplayName" class="text-lg font-semibold">Display Name</p>
                         <div id="profileCardBadges" class="flex flex-wrap gap-1.5 mt-1"></div>
-                        <p id="profileCardUsername" class="text-xs text-slate-400">@username</p>
+                        <div class="flex items-center gap-2 mt-0.5">
+                            <p id="profileCardUsername" class="text-xs text-slate-400">@username</p>
+                            <button id="profileDmBtn"
+                                    onclick="openDmWithViewed()"
+                                    class="px-2 py-0.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-[10px] font-semibold hidden">
+                                Message
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <button onclick="closeProfileOverlay()" class="p-1.5 rounded-full bg-black/40 hover:bg-black/60">
@@ -635,16 +642,9 @@
                             <p class="text-[11px] text-slate-200">Coins: <span id="profileCardCoins">0</span></p>
                             <p class="text-[11px] text-slate-200">Play Time: <span id="profileCardPlaytime">0m</span></p>
                         </div>
-                        <div class="flex flex-col gap-1">
-                            <button id="profileCustomizeBtn" onclick="enterProfileEditMode()" class="px-3 py-1.5 rounded-xl bg-[#5865f2] hover:bg-[#4752c4] text-[11px] font-semibold">
-                                Customize
-                            </button>
-                            <button id="profileDmBtn"
-                                    onclick="openDmWithViewed()"
-                                    class="px-3 py-1.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-[11px] font-semibold hidden">
-                                Message
-                            </button>
-                        </div>
+                        <button id="profileCustomizeBtn" onclick="enterProfileEditMode()" class="px-3 py-1.5 rounded-xl bg-[#5865f2] hover:bg-[#4752c4] text-[11px] font-semibold">
+                            Customize
+                        </button>
                     </div>
                 </div>
             </div>
@@ -771,7 +771,7 @@
 
 <!-- Admin overlay -->
 <div id="adminOverlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[117] flex items-center justify-center hidden">
-    <div class="bg-[#0b1220] text-white rounded-3xl w-full max-w-3xl mx-4 shadow-2xl overflow-hidden border border-white/10">
+    <div class="bg-[#0b1220] text-white rounded-3xl w-full max-w-2xl mx-4 shadow-2xl border border-white/10 max-h-[82vh] md:max-h-[86vh] flex flex-col overflow-hidden">
         <div class="h-16 bg-gradient-to-r from-indigo-600 via-fuchsia-600 to-amber-500 flex items-center justify-between px-6">
             <div>
                 <p class="text-[10px] uppercase tracking-[0.2em] text-white/70 font-semibold">Admin Panel</p>
@@ -782,9 +782,9 @@
             </button>
         </div>
 
-        <div class="grid md:grid-cols-3 gap-0">
+        <div class="grid md:grid-cols-3 gap-0 flex-1 min-h-0">
             <div class="md:col-span-1 border-r border-white/10 bg-[#0b1220]">
-                <div class="p-4 space-y-3">
+                <div class="p-4 space-y-3 overflow-y-auto custom-scroll max-h-[calc(82vh-4rem)]">
                     <div class="bg-white/5 rounded-2xl p-3 border border-white/10 space-y-2">
                         <p class="uppercase text-[10px] text-white/60 font-semibold">Find User</p>
                         <input id="adminUserSearchInput" type="text" placeholder="username or uid" class="w-full px-3 py-2 rounded-xl bg-black/30 border border-white/10 text-[12px] outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
@@ -822,7 +822,7 @@
             </div>
 
             <div class="md:col-span-2 bg-[#07101f]">
-                <div class="p-4 space-y-3">
+                <div class="p-4 space-y-3 overflow-y-auto custom-scroll max-h-[calc(82vh-4rem)]">
                     <div class="bg-white/5 rounded-2xl p-3 border border-white/10">
                         <div class="flex items-start justify-between gap-3">
                             <div>
@@ -940,7 +940,7 @@
         dumb: { name: "Dumb", color: "#ff9900" },
         glitch: { name: "Glitch", color: "#00ffff" },
         cosmic: { name: "Cosmic", color: "#9d50bb" },
-        fire: { name: "Fire", color: "#ff4d00" },
+        fire: { name: "Fire", color: "#ff4d00" }
     };
 
     const RECIPES = {
@@ -960,7 +960,8 @@
         "Bobby+Bobby": { name: "Femboy", emoji: "🧔🏻‍♀️", rarity: "diamond", flavor: "aka trans" },
         "Bobby+Femboy": { name: "Donald", emoji: "🫃", rarity: "gold", flavor: "og femboy" },
         "Alien+Virus": { name: "Monster", emoji: "🧌", rarity: "glitch", flavor: "drink" },
-        "Monster+Monster": { name: "jaden kan", emoji:"🙍‍♂️", rarity: "dumb", flavor: "1%" },
+        "Monster+Monster": { name: "Jayden kan", emoji:"🙍‍♂️", rarity: "normal", flavor: "1%" },
+        "Monster+jayden": { name: "oof shark cat", emoji:" 🦈 ", rarity: "diamond", flavor: "the loser of shark" },
     };
 
     const STORAGE_KEYS = {
@@ -1929,8 +1930,10 @@
         const editSection = document.getElementById('profileEditSection');
         const viewSection = document.getElementById('profileViewSection');
         const customizeBtn = document.getElementById('profileCustomizeBtn');
+        const dmBtn = document.getElementById('profileDmBtn');
         const isOwn = currentPlayer && p.id === currentPlayer.id;
         if (customizeBtn) customizeBtn.classList.toggle('hidden', !isOwn);
+        if (dmBtn) dmBtn.classList.toggle('hidden', !currentPlayer || !p.id || isOwn);
         if (editSection && viewSection) {
             editSection.classList.toggle('hidden', !editing || !isOwn);
             viewSection.classList.toggle('hidden', editing && isOwn);
@@ -2191,6 +2194,14 @@
             lastMessage: text,
             lastAt: now
         });
+        // also bump receiver's convo meta if present
+        const conv = chatConversations.find(c => c.convId === activeConvId);
+        if (conv && conv.otherUid) {
+            await update(ref(window._hcDb, `userConversations/${conv.otherUid}/${activeConvId}`), {
+                lastMessage: text,
+                lastAt: now
+            }).catch(() => {});
+        }
         if (input) input.value = '';
         await loadChatMessages(activeConvId);
         await loadChatConversations();
