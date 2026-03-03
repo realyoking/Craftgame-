@@ -724,6 +724,93 @@
     let viewedProfile = null;
     let playtimeIntervalId = null;
     let authMode = 'signup';
+    let firebaseStatusChecked = false;
+
+    function escapeHtml(str) {
+        return String(str ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function firebaseErrorSummary(err) {
+        const code = err?.code || err?.error?.code;
+        const msg = err?.message || String(err || '');
+        const lowerMsg = msg.toLowerCase();
+
+        if (code === 'auth/unauthorized-domain' || lowerMsg.includes('unauthorized domain')) {
+            return {
+                title: 'Firebase Auth blocked (unauthorized domain)',
+                hint: 'You must open this page from an authorized domain (ex: http://localhost) and add that domain in Firebase Console → Auth → Settings → Authorized domains.'
+            };
+        }
+        if (code === 'auth/operation-not-allowed') {
+            return {
+                title: 'Firebase Auth provider disabled',
+                hint: 'Enable the sign-in provider in Firebase Console → Authentication (Google provider for Google sign-in).'
+            };
+        }
+        if (code === 'auth/popup-blocked') {
+            return {
+                title: 'Popup blocked',
+                hint: 'Allow popups for this site, then try Google sign-in again.'
+            };
+        }
+        if (code === 'auth/network-request-failed') {
+            return {
+                title: 'Network error',
+                hint: 'Check your internet connection or firewall, then retry.'
+            };
+        }
+        if (code === 'PERMISSION_DENIED' || lowerMsg.includes('permission_denied') || lowerMsg.includes('permission denied')) {
+            return {
+                title: 'Firebase Database permission denied',
+                hint: 'Your Realtime Database rules are blocking reads/writes. In Firebase Console → Realtime Database → Rules, allow read for discovery/search (or require auth and make sure you are logged in).'
+            };
+        }
+        if (location.protocol === 'file:') {
+            return {
+                title: 'Running from file://',
+                hint: 'Firebase Auth commonly fails on file://. Serve the folder with a local web server (http://localhost) instead.'
+            };
+        }
+        return { title: code ? `Firebase error (${code})` : 'Firebase error', hint: msg };
+    }
+
+    function renderServerError(containerEl, err, fromMoreOverlay = false) {
+        if (!containerEl) return;
+        const { title, hint } = firebaseErrorSummary(err);
+        const textClass = fromMoreOverlay ? 'text-rose-400' : 'text-rose-600';
+        const hintClass = fromMoreOverlay ? 'text-slate-400' : 'text-slate-500';
+        containerEl.innerHTML = `
+            <div class="py-1">
+                <p class="text-[11px] font-semibold ${textClass}">${escapeHtml(title)}</p>
+                <p class="text-[10px] ${hintClass}">${escapeHtml(hint)}</p>
+            </div>
+        `;
+    }
+
+    async function checkFirebaseStatusOnce() {
+        if (firebaseStatusChecked) return;
+        firebaseStatusChecked = true;
+
+        if (location.protocol === 'file:') {
+            showToast('Tip: open via http://localhost (not file://) for Firebase login');
+        }
+
+        if (!window._hcDb || !window._hcDbFns) return;
+        const { ref, query, limitToFirst, get } = window._hcDbFns;
+        try {
+            // quick permissions check (does not change data)
+            await get(query(ref(window._hcDb, "players"), limitToFirst(1)));
+        } catch (e) {
+            console.warn(e);
+            const { title } = firebaseErrorSummary(e);
+            showToast(title);
+        }
+    }
 
     function setTrashIndicator(active) {
         const el = document.getElementById('trashDropIndicator');
@@ -760,6 +847,7 @@
         loadPlayers();
         ensurePlayer();
         setAuthMode('signup');
+        checkFirebaseStatusOnce().catch(() => {});
         startPlaytimeTracking();
         
         if (window.PointerEvent) {
@@ -1420,7 +1508,11 @@
         if (!input || !container) return;
         const term = (input.value || '').trim().toLowerCase().replace(/^@/, '');
         container.innerHTML = '';
-        if (!term || !window._hcDb || !window._hcDbFns) return;
+        if (!term) return;
+        if (!window._hcDb || !window._hcDbFns) {
+            renderServerError(container, new Error('Firebase not initialized'));
+            return;
+        }
 
         const { ref, query, orderByChild, equalTo, get, limitToFirst } = window._hcDbFns;
         const db = window._hcDb;
@@ -1455,7 +1547,7 @@
             });
         } catch (e) {
             console.warn(e);
-            container.innerHTML = '<p class="text-[11px] text-rose-400 py-1">Error talking to server.</p>';
+            renderServerError(container, e, true);
         }
     }
 
@@ -1552,7 +1644,7 @@
             });
         } catch (err) {
             console.warn(err);
-            container.innerHTML = '<p class="text-[11px] text-rose-500 py-1">Error talking to server.</p>';
+            renderServerError(container, err, fromMoreOverlay);
         }
     }
 
@@ -1564,7 +1656,7 @@
 
     async function signInWithGoogle() {
         if (!window._hcAuth || !window._hcSignInWithPopup || !window._hcAuthProvider || !window._hcDb || !window._hcDbFns) return;
-        const { ref, get, set } = window._hcDbFns;
+        const { ref, get } = window._hcDbFns;
         const db = window._hcDb;
         try {
             const result = await window._hcSignInWithPopup(window._hcAuth, window._hcAuthProvider);
@@ -1594,7 +1686,10 @@
             }
         } catch (e) {
             console.warn(e);
-            showToast('Google sign-in failed');
+            const { title } = firebaseErrorSummary(e);
+            showToast(title);
+            const errEl = document.getElementById('authError');
+            if (errEl) errEl.textContent = title;
         }
     }
 
@@ -1677,7 +1772,8 @@
             showToast('Account created');
         } catch (e) {
             console.warn(e);
-            errEl.textContent = 'Error creating account.';
+            const { title, hint } = firebaseErrorSummary(e);
+            errEl.textContent = `${title}. ${hint}`;
         }
     }
 
@@ -1737,7 +1833,8 @@
             showToast('Logged in');
         } catch (e) {
             console.warn(e);
-            errEl.textContent = 'Error logging in.';
+            const { title, hint } = firebaseErrorSummary(e);
+            errEl.textContent = `${title}. ${hint}`;
         }
     }
 
