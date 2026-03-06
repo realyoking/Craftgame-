@@ -287,6 +287,22 @@
                     <i data-lucide="message-circle" class="w-5 h-5"></i>
                     <span class="hidden md:inline font-bold text-sm">Chat</span>
                 </button>
+                <button onclick="openDailyRewardsOverlay()" id="tabDaily" class="w-full flex items-center gap-3 p-3 rounded-xl transition-all text-slate-400">
+                    <i data-lucide="gift" class="w-5 h-5"></i>
+                    <span class="hidden md:inline font-bold text-sm">Daily Rewards</span>
+                </button>
+                <button onclick="openFriendsOverlay()" id="tabFriends" class="w-full flex items-center gap-3 p-3 rounded-xl transition-all text-slate-400">
+                    <i data-lucide="heart-handshake" class="w-5 h-5"></i>
+                    <span class="hidden md:inline font-bold text-sm">Friends</span>
+                </button>
+                <button onclick="openClansOverlay()" id="tabClans" class="w-full flex items-center gap-3 p-3 rounded-xl transition-all text-slate-400">
+                    <i data-lucide="shield" class="w-5 h-5"></i>
+                    <span class="hidden md:inline font-bold text-sm">Clans</span>
+                </button>
+                <button onclick="openProfileCustomizeOverlay()" id="tabCustomize" class="w-full flex items-center gap-3 p-3 rounded-xl transition-all text-slate-400">
+                    <i data-lucide="paintbrush" class="w-5 h-5"></i>
+                    <span class="hidden md:inline font-bold text-sm">Customize</span>
+                </button>
             </nav>
 
             <div id="inventoryContainer">
@@ -628,6 +644,9 @@
         <button
             onclick="playAsGuest()"
             class="w-full mt-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-xs text-slate-700 rounded-xl font-semibold"
+        >
+            Play as Guest
+        </button>
         <p id="authError" class="mt-3 text-[11px] text-rose-500 min-h-[14px]"></p>
     </div>
 </div>
@@ -1100,17 +1119,11 @@
                                 </select>
                                 <select id="adminElementMix2" class="w-full px-3 py-2 rounded-xl bg-black/30 border border-white/10 text-[12px] outline-none">
                                     <option value="">-- Ingredient 2 --</option>
-                                </select>
                             </div>
-                            <button onclick="adminCreateElement()" class="w-full py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-[11px] font-semibold text-slate-900">Create Element</button>
                         </div>
-                    </div>
-                    <div class="mt-2 border-t border-white/10 pt-2">
-                        <p class="uppercase text-[10px] text-white/60 font-semibold mb-1">View/Edit Elements</p>
-                        <div id="adminElementsList" class="space-y-1 max-h-40 overflow-y-auto custom-scroll text-[11px]"></div>
-                    </div>
 
-                    <p id="adminError" class="text-[11px] text-rose-300 min-h-[16px]"></p>
+                        <p id="adminError" class="text-[11px] text-rose-300 min-h-[16px]"></p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -2580,28 +2593,52 @@
         msgs.forEach(m => {
             const mine = currentPlayer && m.from === currentPlayer.id;
             const row = document.createElement('div');
-            row.className = 'flex ' + (mine ? 'justify-end' : 'justify-start');
+            row.className = 'flex items-end gap-2 mb-3 ' + (mine ? 'justify-end' : 'justify-start');
+            
+            // Get sender info
+            const senderName = mine ? (currentPlayer.displayName || currentPlayer.name || 'You') : (m.fromName || 'User');
+            const senderPfp = mine ? (currentPlayer.pfpUrl || '') : (m.fromPfp || '');
+            const initials = senderName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'U';
+            
+            // Create avatar HTML
+            const avatarHtml = senderPfp
+                ? `<img src="${escapeHtml(senderPfp)}" class="h-8 w-8 rounded-full object-cover border border-slate-200 flex-shrink-0" />`
+                : `<div class="h-8 w-8 rounded-full ${mine ? 'bg-indigo-500' : 'bg-slate-500'} text-white flex items-center justify-center text-[10px] font-bold flex-shrink-0">${escapeHtml(initials)}</div>`;
+            
             const bubble = document.createElement('div');
-            bubble.className = 'max-w-[80%] px-2 py-1.5 rounded-xl text-[11px] space-y-1 ' +
-                (mine ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-800');
+            bubble.className = 'max-w-[70%] px-3 py-2 rounded-2xl text-[12px] ' +
+                (mine ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-slate-100 text-slate-800 rounded-bl-none');
 
             if (m.type === 'image' && m.dataUrl) {
-                bubble.innerHTML = `<img src="${escapeHtml(m.dataUrl)}" class="max-w-full max-h-48 rounded-lg block">`;
+                bubble.innerHTML = `<img src="${escapeHtml(m.dataUrl)}" class="max-w-full max-h-48 rounded-lg block mb-1">`;
                 if (m.text) {
                     bubble.innerHTML += `<div>${escapeHtml(m.text)}</div>`;
                 }
             } else if (m.type === 'audio' && m.dataUrl) {
-                bubble.innerHTML = `<audio controls class="w-full">
-    <source src="${escapeHtml(m.dataUrl)}">
-</audio>`;
+                bubble.innerHTML = `<audio controls class="w-full mb-1"><source src="${escapeHtml(m.dataUrl)}"></audio>`;
                 if (m.text) {
                     bubble.innerHTML += `<div>${escapeHtml(m.text)}</div>`;
                 }
             } else {
                 bubble.textContent = m.text || '';
             }
-
-            row.appendChild(bubble);
+            
+            // Add sender name above bubble for others' messages
+            if (!mine) {
+                const nameEl = document.createElement('div');
+                nameEl.className = 'text-[10px] text-slate-500 mb-1 ml-1';
+                nameEl.textContent = senderName;
+                const wrapper = document.createElement('div');
+                wrapper.className = 'flex flex-col';
+                wrapper.appendChild(nameEl);
+                wrapper.appendChild(bubble);
+                row.appendChild(avatarHtml);
+                row.appendChild(wrapper);
+            } else {
+                row.appendChild(bubble);
+                row.appendChild(avatarHtml);
+            }
+            
             msgsEl.appendChild(row);
         });
         msgsEl.scrollTop = msgsEl.scrollHeight;
@@ -2641,6 +2678,9 @@
         const now = Date.now();
         await set(msgRef, {
             from: currentPlayer.id,
+            fromName: currentPlayer.displayName || currentPlayer.name || '',
+            fromUsername: currentPlayer.username || '',
+            fromPfp: currentPlayer.pfpUrl || '',
             text,
             type,
             dataUrl,
@@ -4380,8 +4420,110 @@
 
         // Multiplayer Fight
         let fightReqUnsub=null,curFightReq=null;
-        function showBlackjackMultiplayer(){const el=document.getElementById('miniGameContent');if(!el)return;el.innerHTML=`<div class="space-y-4"><div class="p-4 rounded-2xl bg-slate-900 border border-slate-800"><h3 class="text-sm font-bold">Online</h3><div id="onlineList" class="space-y-2 max-h-48 overflow-y-auto"><p class="text-[11px]">Loading...</p></div></div></div>`;loadOnline();}
-        async function loadOnline(){if(!window._hcDb||!window._hcDbFns||!currentPlayer)return;const{ref,get}=window._hcDbFns;try{const snap=await get(ref(window._hcDb,'players'));const el=document.getElementById('onlineList');if(!snap.exists()||!el){if(el)el.innerHTML='<p class="text-[11px]">None</p>';return;}const val=snap.val(),now=Date.now();const on=Object.values(val).filter(p=>p.id!==currentPlayer.id&&p.lastSeen&&(now-p.lastSeen)<300000);if(!on.length){el.innerHTML='<p class="text-[11px]">None online</p>';return;}el.innerHTML='';on.forEach(p=>{const row=document.createElement('div');row.className='flex justify-between p-2 rounded-lg bg-slate-800';row.innerHTML=`<div><p class="text-[11px]">${escapeHtml(p.displayName||p.name)}</p></div><button onclick="sendFightReq('${p.id}')" class="px-3 py-1 rounded-lg bg-rose-600 text-[10px]">Fight</button>`;el.appendChild(row);});}catch(e){}}
+        function showBlackjackMultiplayer() {
+            const el = document.getElementById('miniGameContent');
+            if (!el) return;
+            el.innerHTML = `<div class="space-y-4">
+                <div class="p-4 rounded-2xl bg-slate-900 border border-slate-800">
+                    <h3 class="text-sm font-bold mb-2">Find Player</h3>
+                    <div class="flex gap-2 mb-3">
+                        <input id="bjPlayerSearch" type="text" placeholder="Search username..." class="flex-1 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-[11px]">
+                        <button onclick="searchBjPlayers()" class="px-3 py-2 rounded-lg bg-indigo-600 text-[11px]">Search</button>
+                    </div>
+                    <div id="bjSearchResults" class="space-y-2 max-h-32 overflow-y-auto mb-4"></div>
+                    <h3 class="text-sm font-bold mb-2">Online Now</h3>
+                    <div id="onlineList" class="space-y-2 max-h-48 overflow-y-auto">
+                        <p class="text-[11px]">Loading...</p>
+                    </div>
+                </div>
+            </div>`;
+            loadOnline();
+        }
+        
+        async function searchBjPlayers() {
+            const input = document.getElementById('bjPlayerSearch');
+            const resultsEl = document.getElementById('bjSearchResults');
+            if (!input || !resultsEl) return;
+            const term = (input.value || '').trim().toLowerCase().replace(/^@/, '');
+            if (!term) {
+                resultsEl.innerHTML = '<p class="text-[10px] text-slate-400">Enter a username to search</p>';
+                return;
+            }
+            if (!window._hcDb || !window._hcDbFns) {
+                resultsEl.innerHTML = '<p class="text-[10px] text-slate-400">Firebase not ready</p>';
+                return;
+            }
+            resultsEl.innerHTML = '<p class="text-[10px] text-slate-400">Searching...</p>';
+            const { ref, query, orderByChild, equalTo, startAt, endAt, get, limitToFirst } = window._hcDbFns;
+            try {
+                // Search by username
+                const qUser = query(ref(window._hcDb, 'players'), orderByChild('usernameLower'), equalTo(term), limitToFirst(10));
+                // Search by display name
+                const qName = query(ref(window._hcDb, 'players'), orderByChild('displayNameLower'), startAt(term), endAt(term + '\uf8ff'), limitToFirst(10));
+                const [snapUser, snapName] = await Promise.all([get(qUser), get(qName)]);
+                const seen = new Set();
+                const players = [];
+                const addPlayer = (snap) => {
+                    if (!snap.exists()) return;
+                    snap.forEach(child => {
+                        const p = child.val();
+                        const uid = p.id || child.key;
+                        if (uid === currentPlayer.id || seen.has(uid)) return;
+                        seen.add(uid);
+                        players.push(p);
+                    });
+                };
+                addPlayer(snapUser);
+                addPlayer(snapName);
+                
+                resultsEl.innerHTML = '';
+                if (!players.length) {
+                    resultsEl.innerHTML = '<p class="text-[10px] text-slate-400">No players found</p>';
+                    return;
+                }
+                players.forEach(p => {
+                    const row = document.createElement('div');
+                    row.className = 'flex justify-between items-center p-2 rounded-lg bg-slate-800';
+                    const name = p.displayName || p.name || 'User';
+                    const username = p.username || '';
+                    row.innerHTML = `<div class="flex flex-col"><span class="text-[11px] font-semibold">${escapeHtml(name)}</span><span class="text-[10px] text-slate-400">@${escapeHtml(username)}</span></div><button onclick="sendFightReq('${p.id}')" class="px-3 py-1 rounded-lg bg-rose-600 text-[10px]">Fight</button>`;
+                    resultsEl.appendChild(row);
+                });
+            } catch (e) {
+                console.warn(e);
+                resultsEl.innerHTML = '<p class="text-[10px] text-slate-400">Search failed</p>';
+            }
+        }
+        
+        async function loadOnline() {
+            if (!window._hcDb || !window._hcDbFns || !currentPlayer) return;
+            const { ref, get } = window._hcDbFns;
+            try {
+                const snap = await get(ref(window._hcDb, 'players'));
+                const el = document.getElementById('onlineList');
+                if (!snap.exists() || !el) {
+                    if (el) el.innerHTML = '<p class="text-[11px]">None</p>';
+                    return;
+                }
+                const val = snap.val(), now = Date.now();
+                const on = Object.values(val).filter(p => p.id !== currentPlayer.id && p.lastSeen && (now - p.lastSeen) < 300000);
+                if (!on.length) {
+                    el.innerHTML = '<p class="text-[11px]">None online</p>';
+                    return;
+                }
+                el.innerHTML = '';
+                on.forEach(p => {
+                    const row = document.createElement('div');
+                    row.className = 'flex justify-between items-center p-2 rounded-lg bg-slate-800';
+                    const name = p.displayName || p.name || 'User';
+                    const username = p.username || '';
+                    row.innerHTML = `<div class="flex flex-col"><span class="text-[11px] font-semibold">${escapeHtml(name)}</span><span class="text-[10px] text-slate-400">@${escapeHtml(username)}</span></div><button onclick="sendFightReq('${p.id}')" class="px-3 py-1 rounded-lg bg-rose-600 text-[10px]">Fight</button>`;
+                    el.appendChild(row);
+                });
+            } catch (e) {
+                console.warn(e);
+            }
+        }
         async function sendFightReq(tuid){if(!currentPlayer||!window._hcDb||!window._hcDbFns)return;const{ref,set,push}=window._hcDbFns;try{const r=push(ref(window._hcDb,'fightRequests'));await set(r,{fromUid:currentPlayer.id,fromName:currentPlayer.displayName||currentPlayer.name,toUid:tuid,game:'blackjack',status:'pending',createdAt:Date.now()});showToast('Sent!');}catch(e){showToast('Failed');}}
         function listenFights(){if(!currentPlayer||!window._hcDb||!window._hcDbFns)return;const{ref,query,orderByChild,equalTo,onValue,off}=window._hcDbFns;const q=query(ref(window._hcDb,'fightRequests'),orderByChild('toUid'),equalTo(currentPlayer.id));if(fightReqUnsub)fightReqUnsub();const h=(snap)=>{if(!snap.exists())return;const val=snap.val()||{};const reqs=Object.entries(val).filter(([_,r])=>r.status==='pending'&&Date.now()-r.createdAt<60000);if(reqs.length){const[rid,r]=reqs[0];curFightReq={id:rid,...r};const m=document.getElementById('fightRequestModal'),msg=document.getElementById('fightMessage');if(m&&msg){msg.textContent=`${r.fromName} wants to play!`;m.classList.remove('hidden');}}};onValue(q,h,()=>{});fightReqUnsub=()=>off(q,'value',h);}
         async function acceptFight(){if(!curFightReq||!window._hcDb||!window._hcDbFns)return;const{ref,update}=window._hcDbFns;await update(ref(window._hcDb,`fightRequests/${curFightReq.id}`),{status:'accepted'});document.getElementById('fightRequestModal').classList.add('hidden');showToast('Accepted!');switchTab('minigames');showGameOnRight('blackjack');startBlackjackVsBot();}
@@ -4396,7 +4538,1194 @@
         const origInit=init;
         init=function(){origInit();listenFights();listenGuessRes();};
 
+        // Daily Rewards Functions
+        async function openDailyRewardsOverlay() {
+            const el = document.getElementById('dailyRewardsOverlay');
+            if (!el) return;
+            el.classList.remove('hidden');
+            lucide.createIcons();
+            await loadDailyRewardsData();
+        }
+
+        function closeDailyRewardsOverlay() {
+            const el = document.getElementById('dailyRewardsOverlay');
+            if (el) el.classList.add('hidden');
+        }
+
+        async function loadDailyRewardsData() {
+            if (!currentPlayer || !window._hcDb || !window._hcDbFns) return;
+            const { ref, get } = window._hcDbFns;
+            
+            try {
+                // Get config
+                const configSnap = await get(ref(window._hcDb, 'config/dailyRewards'));
+                const config = configSnap.exists() ? configSnap.val() : getDefaultDailyRewards();
+                
+                // Get user progress
+                const progressSnap = await get(ref(window._hcDb, `dailyRewards/${currentPlayer.id}`));
+                const progress = progressSnap.exists() ? progressSnap.val() : { streak: 0, lastClaim: 0, claimedDays: [] };
+                
+                renderDailyRewards(config, progress);
+            } catch (e) {
+                console.warn('Failed to load daily rewards:', e);
+            }
+        }
+
+        function getDefaultDailyRewards() {
+            return {
+                1: { type: 'coins', value: '100' },
+                2: { type: 'coins', value: '200' },
+                3: { type: 'coins', value: '300' },
+                4: { type: 'element', value: 'Max' },
+                5: { type: 'coins', value: '500' },
+                6: { type: 'upgrade', value: 'doubleCoins' },
+                7: { type: 'golden', value: 'true' }
+            };
+        }
+
+        function renderDailyRewards(config, progress) {
+            const grid = document.getElementById('dailyRewardsGrid');
+            const streakEl = document.getElementById('streakNumber');
+            const claimArea = document.getElementById('dailyRewardClaimArea');
+            const claimedArea = document.getElementById('dailyRewardClaimed');
+            const todayReward = document.getElementById('todayRewardContent');
+            
+            if (!grid) return;
+            
+            streakEl.textContent = progress.streak || 0;
+            
+            // Calculate current day (1-7 based on streak)
+            const currentDay = ((progress.streak || 0) % 7) || 1;
+            const today = new Date().toDateString();
+            const lastClaim = progress.lastClaim ? new Date(progress.lastClaim).toDateString() : null;
+            const canClaim = lastClaim !== today;
+            
+            // Render 7 days
+            grid.innerHTML = '';
+            for (let day = 1; day <= 7; day++) {
+                const reward = config[day] || { type: 'coins', value: '100' };
+                const dayEl = document.createElement('div');
+                dayEl.className = 'daily-reward-day';
+                
+                if (day < currentDay || (day === 7 && currentDay === 1 && !canClaim)) {
+                    dayEl.classList.add('claimed');
+                } else if (day === currentDay && canClaim) {
+                    dayEl.classList.add('active');
+                } else {
+                    dayEl.classList.add('pending');
+                }
+                
+                const icon = getRewardIcon(reward.type);
+                dayEl.innerHTML = `
+                    <span class="text-[8px] text-slate-400">Day ${day}</span>
+                    <span class="text-lg">${icon}</span>
+                    <span class="text-[8px] text-slate-300">${reward.type}</span>
+                `;
+                grid.appendChild(dayEl);
+            }
+            
+            // Show claim area or claimed
+            if (canClaim) {
+                claimArea.classList.remove('hidden');
+                claimedArea.classList.add('hidden');
+                const reward = config[currentDay] || { type: 'coins', value: '100' };
+                todayReward.innerHTML = `
+                    <span class="text-2xl">${getRewardIcon(reward.type)}</span>
+                    <p class="text-[11px] text-slate-300 mt-1">${formatReward(reward)}</p>
+                `;
+            } else {
+                claimArea.classList.add('hidden');
+                claimedArea.classList.remove('hidden');
+            }
+        }
+
+        function getRewardIcon(type) {
+            const icons = {
+                coins: '🪙',
+                element: '🎁',
+                upgrade: '⚡',
+                badge: '🏅',
+                golden: '✨'
+            };
+            return icons[type] || '🎁';
+        }
+
+        function formatReward(reward) {
+            const typeLabels = {
+                coins: `${reward.value} Coins`,
+                element: `Element: ${reward.value}`,
+                upgrade: `Upgrade: ${reward.value}`,
+                badge: `Badge: ${reward.value}`,
+                golden: 'Golden Name (7 days)'
+            };
+            return typeLabels[reward.type] || reward.value;
+        }
+
+        async function claimDailyReward() {
+            if (!currentPlayer || !window._hcDb || !window._hcDbFns) return;
+            const { ref, get, set, update } = window._hcDbFns;
+            
+            try {
+                const progressSnap = await get(ref(window._hcDb, `dailyRewards/${currentPlayer.id}`));
+                const progress = progressSnap.exists() ? progressSnap.val() : { streak: 0, lastClaim: 0 };
+                
+                const today = new Date().toDateString();
+                const lastClaim = progress.lastClaim ? new Date(progress.lastClaim).toDateString() : null;
+                
+                if (lastClaim === today) {
+                    showToast('Already claimed today!');
+                    return;
+                }
+                
+                // Check streak
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                const wasYesterday = lastClaim === yesterday.toDateString();
+                
+                const newStreak = wasYesterday ? (progress.streak || 0) + 1 : 1;
+                const currentDay = (newStreak % 7) || 1;
+                
+                // Get reward config
+                const configSnap = await get(ref(window._hcDb, 'config/dailyRewards'));
+                const config = configSnap.exists() ? configSnap.val() : getDefaultDailyRewards();
+                const reward = config[currentDay] || { type: 'coins', value: '100' };
+                
+                // Apply reward
+                await applyReward(reward);
+                
+                // Save progress
+                await set(ref(window._hcDb, `dailyRewards/${currentPlayer.id}`), {
+                    streak: newStreak,
+                    lastClaim: Date.now(),
+                    lastDay: currentDay
+                });
+                
+                showToast(`Claimed: ${formatReward(reward)}`);
+                await loadDailyRewardsData();
+            } catch (e) {
+                console.warn('Claim failed:', e);
+                showToast('Failed to claim reward');
+            }
+        }
+
+        async function applyReward(reward) {
+            if (reward.type === 'coins') {
+                state.coins += parseInt(reward.value) || 0;
+                updateUI();
+                save();
+            } else if (reward.type === 'element') {
+                const all = getAllElementsMap();
+                const el = all.get(String(reward.value).toLowerCase());
+                if (el && !state.inventory.some(i => i.name === el.name)) {
+                    state.inventory.push(el);
+                    renderInventory();
+                    save();
+                }
+            } else if (reward.type === 'upgrade') {
+                state.upgrades[reward.value] = true;
+                updateUI();
+                save();
+            } else if (reward.type === 'golden') {
+                // Apply golden text for 7 days
+                if (window._hcDb && window._hcDbFns) {
+                    const { ref, update } = window._hcDbFns;
+                    await update(ref(window._hcDb, `players/${currentPlayer.id}`), {
+                        goldenUntil: Date.now() + (7 * 24 * 60 * 60 * 1000)
+                    });
+                }
+            }
+            syncPlayerStats();
+        }
+
+        // Admin Daily Rewards Functions
+        async function adminLoadDailyRewards() {
+            if (!window._hcDb || !window._hcDbFns) {
+                document.getElementById('dailyRewardConfigError').textContent = 'Firebase not ready';
+                return;
+            }
+            const { ref, get } = window._hcDbFns;
+            try {
+                const snap = await get(ref(window._hcDb, 'config/dailyRewards'));
+                const config = snap.exists() ? snap.val() : getDefaultDailyRewards();
+                
+                for (let day = 1; day <= 7; day++) {
+                    const reward = config[day] || { type: 'coins', value: '' };
+                    const typeEl = document.getElementById(`dailyRewardType${day}`);
+                    const valueEl = document.getElementById(`dailyRewardValue${day}`);
+                    if (typeEl) typeEl.value = reward.type;
+                    if (valueEl) valueEl.value = reward.value || '';
+                }
+                document.getElementById('dailyRewardConfigError').textContent = 'Loaded';
+            } catch (e) {
+                document.getElementById('dailyRewardConfigError').textContent = 'Failed to load';
+            }
+        }
+
+        async function adminSaveDailyRewards() {
+            if (!window._hcDb || !window._hcDbFns) {
+                document.getElementById('dailyRewardConfigError').textContent = 'Firebase not ready';
+                return;
+            }
+            const { ref, set } = window._hcDbFns;
+            
+            const config = {};
+            for (let day = 1; day <= 7; day++) {
+                const typeEl = document.getElementById(`dailyRewardType${day}`);
+                const valueEl = document.getElementById(`dailyRewardValue${day}`);
+                config[day] = {
+                    type: typeEl ? typeEl.value : 'coins',
+                    value: valueEl ? valueEl.value : ''
+                };
+            }
+            
+            try {
+                await set(ref(window._hcDb, 'config/dailyRewards'), config);
+                document.getElementById('dailyRewardConfigError').textContent = 'Saved!';
+                showToast('Daily rewards config saved');
+            } catch (e) {
+                document.getElementById('dailyRewardConfigError').textContent = 'Failed to save';
+            }
+        }
+
+        // Friends System Functions
+        async function openFriendsOverlay() {
+            const el = document.getElementById('friendsOverlay');
+            if (!el) return;
+            el.classList.remove('hidden');
+            lucide.createIcons();
+            await loadFriendsList();
+        }
+
+        function closeFriendsOverlay() {
+            const el = document.getElementById('friendsOverlay');
+            if (el) el.classList.add('hidden');
+        }
+
+        async function loadFriendsList() {
+            if (!currentPlayer || !window._hcDb || !window._hcDbFns) return;
+            const { ref, get } = window._hcDbFns;
+            
+            try {
+                const snap = await get(ref(window._hcDb, `friends/${currentPlayer.id}`));
+                const friends = snap.exists() ? snap.val() : {};
+                
+                const listEl = document.getElementById('friendsList');
+                const countEl = document.getElementById('friendCount');
+                
+                const friendIds = Object.keys(friends);
+                countEl.textContent = friendIds.length;
+                
+                if (!friendIds.length) {
+                    listEl.innerHTML = '<p class="text-[11px] text-slate-500 text-center py-4">No friends yet. Add some!</p>';
+                    return;
+                }
+                
+                listEl.innerHTML = '';
+                for (const friendId of friendIds) {
+                    const friendSnap = await get(ref(window._hcDb, `players/${friendId}`));
+                    if (!friendSnap.exists()) continue;
+                    
+                    const friend = friendSnap.val();
+                    const row = document.createElement('div');
+                    row.className = 'flex justify-between items-center p-2 rounded-lg bg-[#1e1f22] border border-[#3f4247]';
+                    
+                    const name = friend.displayName || friend.name || 'User';
+                    const username = friend.username || '';
+                    const isOnline = friend.lastSeen && (Date.now() - friend.lastSeen) < 300000;
+                    
+                    row.innerHTML = `
+                        <div class="flex items-center gap-2">
+                            <div class="h-8 w-8 rounded-full bg-slate-700 flex items-center justify-center text-[10px]">
+                                ${name.slice(0, 2).toUpperCase()}
+                            </div>
+                            <div>
+                                <p class="text-[11px] font-semibold">${escapeHtml(name)}</p>
+                                <p class="text-[10px] text-slate-400">@${escapeHtml(username)} ${isOnline ? '🟢' : '⚪'}</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-1">
+                            <button onclick="visitFriendProfile('${friendId}')" class="px-2 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-[9px]">View</button>
+                            <button onclick="removeFriend('${friendId}')" class="px-2 py-1 rounded bg-rose-600 hover:bg-rose-500 text-[9px]">✕</button>
+                        </div>
+                    `;
+                    listEl.appendChild(row);
+                }
+            } catch (e) {
+                console.warn('Failed to load friends:', e);
+            }
+        }
+
+        async function searchAddFriend() {
+            if (!currentPlayer || !window._hcDb || !window._hcDbFns) return;
+            const input = document.getElementById('friendSearchInput');
+            const resultsEl = document.getElementById('friendSearchResults');
+            
+            const term = (input?.value || '').trim().toLowerCase().replace(/^@/, '');
+            if (!term) {
+                resultsEl.innerHTML = '<p class="text-[10px] text-slate-400">Enter a username</p>';
+                return;
+            }
+            
+            const { ref, query, orderByChild, equalTo, get } = window._hcDbFns;
+            
+            try {
+                resultsEl.innerHTML = '<p class="text-[10px] text-slate-400">Searching...</p>';
+                
+                const q = query(ref(window._hcDb, 'players'), orderByChild('usernameLower'), equalTo(term), limitToFirst(5));
+                const snap = await get(q);
+                
+                if (!snap.exists()) {
+                    resultsEl.innerHTML = '<p class="text-[10px] text-slate-400">No user found</p>';
+                    return;
+                }
+                
+                resultsEl.innerHTML = '';
+                snap.forEach(child => {
+                    const p = child.val();
+                    if (p.id === currentPlayer.id) return;
+                    
+                    const row = document.createElement('div');
+                    row.className = 'flex justify-between items-center p-2 rounded-lg bg-[#1e1f22]';
+                    row.innerHTML = `
+                        <div>
+                            <p class="text-[11px] font-semibold">${escapeHtml(p.displayName || p.name)}</p>
+                            <p class="text-[10px] text-slate-400">@${escapeHtml(p.username || '')}</p>
+                        </div>
+                        <button onclick="addFriend('${p.id}')" class="px-3 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-[10px]">Add</button>
+                    `;
+                    resultsEl.appendChild(row);
+                });
+            } catch (e) {
+                resultsEl.innerHTML = '<p class="text-[10px] text-rose-400">Search failed</p>';
+            }
+        }
+
+        async function addFriend(friendId) {
+            if (!currentPlayer || !window._hcDb || !window._hcDbFns) return;
+            const { ref, set, get } = window._hcDbFns;
+            
+            try {
+                // Add to my friends
+                await set(ref(window._hcDb, `friends/${currentPlayer.id}/${friendId}`), {
+                    addedAt: Date.now()
+                });
+                // Add to their friends
+                await set(ref(window._hcDb, `friends/${friendId}/${currentPlayer.id}`), {
+                    addedAt: Date.now()
+                });
+                
+                showToast('Friend added!');
+                document.getElementById('friendSearchResults').innerHTML = '';
+                document.getElementById('friendSearchInput').value = '';
+                await loadFriendsList();
+            } catch (e) {
+                showToast('Failed to add friend');
+            }
+        }
+
+        async function removeFriend(friendId) {
+            if (!currentPlayer || !window._hcDb || !window._hcDbFns) return;
+            const { ref, remove } = window._hcDbFns;
+            
+            try {
+                await remove(ref(window._hcDb, `friends/${currentPlayer.id}/${friendId}`));
+                await remove(ref(window._hcDb, `friends/${friendId}/${currentPlayer.id}`));
+                showToast('Friend removed');
+                await loadFriendsList();
+            } catch (e) {
+                showToast('Failed to remove friend');
+            }
+        }
+
+        async function visitFriendProfile(friendId) {
+            if (!window._hcDb || !window._hcDbFns) return;
+            const { ref, get } = window._hcDbFns;
+            
+            try {
+                const snap = await get(ref(window._hcDb, `players/${friendId}`));
+                if (snap.exists()) {
+                    closeFriendsOverlay();
+                    openVisitedProfile(snap.val());
+                }
+            } catch (e) {
+                showToast('Failed to load profile');
+            }
+        }
+
+        // Clans System Functions
+        let currentClanId = null;
+        let clanChatUnsub = null;
+
+        async function openClansOverlay() {
+            const el = document.getElementById('clansOverlay');
+            if (!el) return;
+            el.classList.remove('hidden');
+            lucide.createIcons();
+            await loadClanData();
+        }
+
+        function closeClansOverlay() {
+            const el = document.getElementById('clansOverlay');
+            if (el) el.classList.add('hidden');
+            if (clanChatUnsub) {
+                clanChatUnsub();
+                clanChatUnsub = null;
+            }
+        }
+
+        async function loadClanData() {
+            if (!currentPlayer || !window._hcDb || !window._hcDbFns) return;
+            const { ref, get } = window._hcDbFns;
+            
+            try {
+                // Check if player is in a clan
+                const playerClanSnap = await get(ref(window._hcDb, `playerClans/${currentPlayer.id}`));
+                
+                if (!playerClanSnap.exists()) {
+                    // Not in a clan
+                    showNoClanView();
+                    return;
+                }
+                
+                const clanId = playerClanSnap.val().clanId;
+                currentClanId = clanId;
+                
+                // Load clan details
+                const clanSnap = await get(ref(window._hcDb, `clans/${clanId}`));
+                if (!clanSnap.exists()) {
+                    showNoClanView();
+                    return;
+                }
+                
+                const clan = clanSnap.val();
+                const myRole = clan.members[currentPlayer.id]?.role || 'member';
+                
+                showClanDetailView(clan, myRole);
+                listenToClanChat(clanId);
+            } catch (e) {
+                console.warn('Failed to load clan:', e);
+                showNoClanView();
+            }
+        }
+
+        function showNoClanView() {
+            document.getElementById('noClanView').classList.remove('hidden');
+            document.getElementById('createClanForm').classList.add('hidden');
+            document.getElementById('joinClanForm').classList.add('hidden');
+            document.getElementById('clanDetailView').classList.add('hidden');
+            currentClanId = null;
+        }
+
+        function showCreateClanForm() {
+            document.getElementById('noClanView').classList.add('hidden');
+            document.getElementById('createClanForm').classList.remove('hidden');
+            document.getElementById('joinClanForm').classList.add('hidden');
+            document.getElementById('clanDetailView').classList.add('hidden');
+            document.getElementById('clanNameInput').value = '';
+            document.getElementById('clanDescInput').value = '';
+            document.getElementById('createClanError').textContent = '';
+        }
+
+        function cancelCreateClan() {
+            showNoClanView();
+        }
+
+        function showJoinClanForm() {
+            document.getElementById('noClanView').classList.add('hidden');
+            document.getElementById('createClanForm').classList.add('hidden');
+            document.getElementById('joinClanForm').classList.remove('hidden');
+            document.getElementById('clanDetailView').classList.add('hidden');
+            document.getElementById('clanSearchInput').value = '';
+            document.getElementById('clanSearchResults').innerHTML = '';
+        }
+
+        function cancelJoinClan() {
+            showNoClanView();
+        }
+
+        async function createClan() {
+            if (!currentPlayer || !window._hcDb || !window._hcDbFns) return;
+            
+            const name = document.getElementById('clanNameInput').value.trim();
+            const desc = document.getElementById('clanDescInput').value.trim();
+            const errEl = document.getElementById('createClanError');
+            
+            if (!name) {
+                errEl.textContent = 'Enter a clan name';
+                return;
+            }
+            if (name.length < 3) {
+                errEl.textContent = 'Name too short (min 3 chars)';
+                return;
+            }
+            if (state.coins < 10000) {
+                errEl.textContent = 'Need 10,000 coins to create clan';
+                return;
+            }
+            
+            const { ref, set, push } = window._hcDbFns;
+            
+            try {
+                // Generate tag from name (first 3 uppercase letters)
+                const tag = name.substring(0, 3).toUpperCase();
+                
+                const clanRef = push(ref(window._hcDb, 'clans'));
+                const clanId = clanRef.key;
+                
+                await set(clanRef, {
+                    name,
+                    description: desc || 'No description',
+                    tag,
+                    ownerId: currentPlayer.id,
+                    createdAt: Date.now(),
+                    members: {
+                        [currentPlayer.id]: {
+                            role: 'owner',
+                            joinedAt: Date.now(),
+                            displayName: currentPlayer.displayName || currentPlayer.name
+                        }
+                    }
+                });
+                
+                // Set player's clan
+                await set(ref(window._hcDb, `playerClans/${currentPlayer.id}`), {
+                    clanId,
+                    joinedAt: Date.now()
+                });
+                
+                // Deduct coins
+                state.coins -= 10000;
+                updateUI();
+                save();
+                syncPlayerStats();
+                
+                showToast('Clan created!');
+                await loadClanData();
+            } catch (e) {
+                errEl.textContent = 'Failed to create clan';
+            }
+        }
+
+        async function searchClans() {
+            if (!window._hcDb || !window._hcDbFns) return;
+            const term = document.getElementById('clanSearchInput').value.trim().toLowerCase();
+            const resultsEl = document.getElementById('clanSearchResults');
+            
+            if (!term) {
+                resultsEl.innerHTML = '';
+                return;
+            }
+            
+            const { ref, get } = window._hcDbFns;
+            
+            try {
+                resultsEl.innerHTML = '<p class="text-[10px] text-slate-400">Searching...</p>';
+                
+                const snap = await get(ref(window._hcDb, 'clans'));
+                if (!snap.exists()) {
+                    resultsEl.innerHTML = '<p class="text-[10px] text-slate-400">No clans found</p>';
+                    return;
+                }
+                
+                const clans = [];
+                snap.forEach(child => {
+                    const clan = child.val();
+                    if (clan.name.toLowerCase().includes(term)) {
+                        clans.push({ id: child.key, ...clan });
+                    }
+                });
+                
+                if (!clans.length) {
+                    resultsEl.innerHTML = '<p class="text-[10px] text-slate-400">No matching clans</p>';
+                    return;
+                }
+                
+                resultsEl.innerHTML = '';
+                clans.forEach(clan => {
+                    const memberCount = Object.keys(clan.members || {}).length;
+                    const row = document.createElement('div');
+                    row.className = 'flex justify-between items-center p-2 rounded-lg bg-[#2b2d31]';
+                    row.innerHTML = `
+                        <div>
+                            <p class="text-[11px] font-semibold text-violet-400">[${clan.tag}] ${escapeHtml(clan.name)}</p>
+                            <p class="text-[10px] text-slate-400">${memberCount} members</p>
+                        </div>
+                        <button onclick="joinClan('${clan.id}')" class="px-3 py-1 rounded bg-violet-600 hover:bg-violet-500 text-[10px]">Join</button>
+                    `;
+                    resultsEl.appendChild(row);
+                });
+            } catch (e) {
+                resultsEl.innerHTML = '<p class="text-[10px] text-rose-400">Search failed</p>';
+            }
+        }
+
+        async function joinClan(clanId) {
+            if (!currentPlayer || !window._hcDb || !window._hcDbFns) return;
+            const { ref, get, set, update } = window._hcDbFns;
+            
+            try {
+                // Check if already in a clan
+                const playerClanSnap = await get(ref(window._hcDb, `playerClans/${currentPlayer.id}`));
+                if (playerClanSnap.exists()) {
+                    showToast('Leave your current clan first');
+                    return;
+                }
+                
+                // Add to clan
+                await update(ref(window._hcDb, `clans/${clanId}/members/${currentPlayer.id}`), {
+                    role: 'member',
+                    joinedAt: Date.now(),
+                    displayName: currentPlayer.displayName || currentPlayer.name
+                });
+                
+                // Set player's clan
+                await set(ref(window._hcDb, `playerClans/${currentPlayer.id}`), {
+                    clanId,
+                    joinedAt: Date.now()
+                });
+                
+                showToast('Joined clan!');
+                await loadClanData();
+            } catch (e) {
+                showToast('Failed to join clan');
+            }
+        }
+
+        async function leaveClan() {
+            if (!currentPlayer || !window._hcDb || !window._hcDbFns || !currentClanId) return;
+            
+            if (!confirm('Leave this clan?')) return;
+            
+            const { ref, remove, update, get } = window._hcDbFns;
+            
+            try {
+                // Remove from clan members
+                await remove(ref(window._hcDb, `clans/${currentClanId}/members/${currentPlayer.id}`));
+                
+                // Remove player's clan reference
+                await remove(ref(window._hcDb, `playerClans/${currentPlayer.id}`));
+                
+                // Check if clan is now empty
+                const clanSnap = await get(ref(window._hcDb, `clans/${currentClanId}`));
+                if (clanSnap.exists()) {
+                    const clan = clanSnap.val();
+                    if (!clan.members || Object.keys(clan.members).length === 0) {
+                        // Delete empty clan
+                        await remove(ref(window._hcDb, `clans/${currentClanId}`));
+                    }
+                }
+                
+                showToast('Left clan');
+                currentClanId = null;
+                await loadClanData();
+            } catch (e) {
+                showToast('Failed to leave clan');
+            }
+        }
+
+        function showClanDetailView(clan, myRole) {
+            document.getElementById('noClanView').classList.add('hidden');
+            document.getElementById('createClanForm').classList.add('hidden');
+            document.getElementById('joinClanForm').classList.add('hidden');
+            document.getElementById('clanDetailView').classList.remove('hidden');
+            
+            document.getElementById('clanDetailName').textContent = clan.name;
+            document.getElementById('clanDetailDesc').textContent = clan.description || 'No description';
+            document.getElementById('clanDetailTag').textContent = clan.tag || 'CLAN';
+            
+            const roleEl = document.getElementById('clanMyRole');
+            roleEl.textContent = myRole.charAt(0).toUpperCase() + myRole.slice(1);
+            roleEl.className = `text-[10px] clan-role-${myRole}`;
+            
+            // Render members
+            const membersList = document.getElementById('clanMembersList');
+            const memberCount = Object.keys(clan.members || {}).length;
+            document.getElementById('clanMemberCount').textContent = memberCount;
+            
+            membersList.innerHTML = '';
+            Object.entries(clan.members || {}).forEach(([memberId, member]) => {
+                const isOnline = member.lastSeen && (Date.now() - member.lastSeen) < 300000;
+                const row = document.createElement('div');
+                row.className = 'flex justify-between items-center p-2 rounded-lg bg-[#1e1f22]';
+                row.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] ${isOnline ? 'text-emerald-400' : 'text-slate-500'}">●</span>
+                        <div>
+                            <p class="text-[11px] font-semibold">${escapeHtml(member.displayName || 'Unknown')}</p>
+                            <p class="text-[10px] clan-role-${member.role || 'member'}">${member.role || 'Member'}</p>
+                        </div>
+                    </div>
+                    ${canManageMember(myRole, member.role) && memberId !== currentPlayer.id ? `
+                    <div class="flex gap-1">
+                        <button onclick="showManageMember('${memberId}', '${member.displayName}')" class="px-2 py-1 rounded bg-[#3f4247] hover:bg-[#4f5257] text-[9px]">Manage</button>
+                    </div>
+                    ` : ''}
+                `;
+                membersList.appendChild(row);
+            });
+            
+            // Show appropriate actions
+            const isAdmin = ['owner', 'coowner', 'admin'].includes(myRole);
+            const isModerator = isAdmin || myRole === 'moderator';
+            
+            document.getElementById('clanMemberActions').classList.toggle('hidden', isAdmin);
+            document.getElementById('clanAdminActions').classList.toggle('hidden', !isModerator);
+        }
+
+        function canManageMember(myRole, theirRole) {
+            const roleHierarchy = { owner: 5, coowner: 4, admin: 3, moderator: 2, member: 1 };
+            return roleHierarchy[myRole] > roleHierarchy[theirRole];
+        }
+
+        async function sendClanChatMessage() {
+            if (!currentPlayer || !window._hcDb || !window._hcDbFns || !currentClanId) return;
+            
+            const input = document.getElementById('clanChatInput');
+            const text = input.value.trim();
+            if (!text) return;
+            
+            const { ref, push, set } = window._hcDbFns;
+            
+            try {
+                const msgRef = push(ref(window._hcDb, `clanChats/${currentClanId}`));
+                await set(msgRef, {
+                    from: currentPlayer.id,
+                    fromName: currentPlayer.displayName || currentPlayer.name,
+                    text,
+                    createdAt: Date.now()
+                });
+                input.value = '';
+            } catch (e) {
+                showToast('Failed to send message');
+            }
+        }
+
+        function listenToClanChat(clanId) {
+            if (!window._hcDb || !window._hcDbFns) return;
+            const { ref, query, limitToLast, onValue, off } = window._hcDbFns;
+            
+            if (clanChatUnsub) clanChatUnsub();
+            
+            const q = query(ref(window._hcDb, `clanChats/${clanId}`), limitToLast(50));
+            
+            clanChatUnsub = onValue(q, (snap) => {
+                const chatEl = document.getElementById('clanChatMessages');
+                if (!snap.exists()) {
+                    chatEl.innerHTML = '<p class="text-[10px] text-slate-500 text-center">No messages yet</p>';
+                    return;
+                }
+                
+                chatEl.innerHTML = '';
+                snap.forEach(child => {
+                    const msg = child.val();
+                    const isMe = msg.from === currentPlayer?.id;
+                    const row = document.createElement('div');
+                    row.className = `flex ${isMe ? 'justify-end' : 'justify-start'}`;
+                    row.innerHTML = `
+                        <div class="max-w-[80%] px-3 py-1.5 rounded-xl ${isMe ? 'bg-violet-600 text-white' : 'bg-[#2b2d31] text-slate-200'}">
+                            ${!isMe ? `<p class="text-[9px] text-slate-400">${escapeHtml(msg.fromName)}</p>` : ''}
+                            <p class="text-[10px]">${escapeHtml(msg.text)}</p>
+                        </div>
+                    `;
+                    chatEl.appendChild(row);
+                });
+                chatEl.scrollTop = chatEl.scrollHeight;
+            });
+        }
+
+        // Profile Customization Functions
+        async function openProfileCustomizeOverlay() {
+            const el = document.getElementById('profileCustomizeOverlay');
+            if (!el) return;
+            el.classList.remove('hidden');
+            lucide.createIcons();
+            await loadCurrentCustomization();
+        }
+
+        function closeProfileCustomizeOverlay() {
+            const el = document.getElementById('profileCustomizeOverlay');
+            if (el) el.classList.add('hidden');
+        }
+
+        async function loadCurrentCustomization() {
+            if (!currentPlayer || !window._hcDb || !window._hcDbFns) return;
+            const { ref, get } = window._hcDbFns;
+            
+            try {
+                const snap = await get(ref(window._hcDb, `players/${currentPlayer.id}`));
+                if (snap.exists()) {
+                    const data = snap.val();
+                    if (data.customStatus) {
+                        document.getElementById('statusEmoji').value = data.customStatus.emoji || '';
+                        document.getElementById('statusTextInput').value = data.customStatus.text || '';
+                    }
+                }
+            } catch (e) {
+                console.warn('Failed to load customization:', e);
+            }
+        }
+
+        async function setProfileTheme(theme) {
+            if (!currentPlayer || !window._hcDb || !window._hcDbFns) return;
+            const { ref, update } = window._hcDbFns;
+            
+            try {
+                await update(ref(window._hcDb, `players/${currentPlayer.id}`), {
+                    profileTheme: theme
+                });
+                showToast(`Theme set: ${theme}`);
+            } catch (e) {
+                showToast('Failed to set theme');
+            }
+        }
+
+        async function setNameColor(color) {
+            if (!currentPlayer || !window._hcDb || !window._hcDbFns) return;
+            const { ref, update } = window._hcDbFns;
+            
+            try {
+                await update(ref(window._hcDb, `players/${currentPlayer.id}`), {
+                    nameColor: color
+                });
+                showToast(`Name color set: ${color}`);
+            } catch (e) {
+                showToast('Failed to set color');
+            }
+        }
+
+        async function setCustomStatus() {
+            if (!currentPlayer || !window._hcDb || !window._hcDbFns) return;
+            const { ref, update } = window._hcDbFns;
+            
+            const emoji = document.getElementById('statusEmoji').value;
+            const text = document.getElementById('statusTextInput').value.trim();
+            
+            if (!text) {
+                showToast('Enter a status message');
+                return;
+            }
+            
+            try {
+                await update(ref(window._hcDb, `players/${currentPlayer.id}`), {
+                    customStatus: { emoji, text, setAt: Date.now() }
+                });
+                showToast('Status updated!');
+            } catch (e) {
+                showToast('Failed to set status');
+            }
+        }
+
+        async function clearCustomStatus() {
+            if (!currentPlayer || !window._hcDb || !window._hcDbFns) return;
+            const { ref, update } = window._hcDbFns;
+            
+            try {
+                await update(ref(window._hcDb, `players/${currentPlayer.id}`), {
+                    customStatus: null
+                });
+                document.getElementById('statusEmoji').value = '';
+                document.getElementById('statusTextInput').value = '';
+                showToast('Status cleared');
+            } catch (e) {
+                showToast('Failed to clear status');
+            }
+        }
+
         window.onload = init;
     </script>
+
+    <!-- Daily Rewards Overlay -->
+    <div id="dailyRewardsOverlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[118] flex items-center justify-center hidden">
+        <div class="bg-[#1e1f22] text-white rounded-3xl w-full max-w-md mx-4 shadow-2xl overflow-hidden">
+            <div class="h-16 bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 flex items-center justify-between px-6">
+                <div>
+                    <p class="text-[10px] uppercase tracking-[0.2em] text-amber-100/80 font-semibold">Daily Login</p>
+                    <p class="text-sm font-semibold">Claim Your Rewards</p>
+                </div>
+                <button onclick="closeDailyRewardsOverlay()" class="p-1.5 rounded-full bg-black/30 hover:bg-black/50">
+                    <i data-lucide="x" class="w-4 h-4 text-slate-100"></i>
+                </button>
+            </div>
+            <div class="px-6 py-4 space-y-4 text-xs">
+                <div id="dailyRewardsStreak" class="text-center">
+                    <p class="text-[11px] text-slate-400">Current Streak</p>
+                    <p id="streakNumber" class="text-3xl font-black text-amber-400">0</p>
+                    <p class="text-[10px] text-slate-500">days</p>
+                </div>
+                <div id="dailyRewardsGrid" class="grid grid-cols-7 gap-1">
+                    <!-- Days 1-7 will be rendered here -->
+                </div>
+                <div id="dailyRewardClaimArea" class="hidden">
+                    <div class="bg-[#2b2d31] rounded-2xl p-3 border border-[#3f4247] text-center">
+                        <p class="text-[11px] text-slate-400 mb-2">Today's Reward</p>
+                        <div id="todayRewardContent" class="py-2"></div>
+                        <button onclick="claimDailyReward()" class="w-full mt-2 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-[11px] font-semibold text-white">
+                            Claim Reward
+                        </button>
+                    </div>
+                </div>
+                <div id="dailyRewardClaimed" class="hidden text-center py-4">
+                    <p class="text-[12px] text-emerald-400 font-semibold">✓ Already Claimed Today</p>
+                    <p class="text-[10px] text-slate-500 mt-1">Come back tomorrow!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Friends Overlay -->
+    <div id="friendsOverlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[118] flex items-center justify-center hidden">
+        <div class="bg-[#1e1f22] text-white rounded-3xl w-full max-w-md mx-4 shadow-2xl overflow-hidden">
+            <div class="h-16 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 flex items-center justify-between px-6">
+                <div>
+                    <p class="text-[10px] uppercase tracking-[0.2em] text-emerald-100/80 font-semibold">Social</p>
+                    <p class="text-sm font-semibold">My Friends</p>
+                </div>
+                <button onclick="closeFriendsOverlay()" class="p-1.5 rounded-full bg-black/30 hover:bg-black/50">
+                    <i data-lucide="x" class="w-4 h-4 text-slate-100"></i>
+                </button>
+            </div>
+            <div class="px-6 py-4 space-y-4 text-xs">
+                <div class="bg-[#2b2d31] rounded-2xl p-3 border border-[#3f4247] space-y-2">
+                    <p class="uppercase text-[10px] text-slate-400 font-semibold">Add Friend</p>
+                    <div class="flex gap-2">
+                        <input id="friendSearchInput" type="text" placeholder="Enter username..." class="flex-1 px-3 py-2 rounded-xl bg-[#1e1f22] border border-[#3f4247] text-[11px] outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                        <button onclick="searchAddFriend()" class="px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-[11px] font-semibold text-slate-900">
+                            Search
+                        </button>
+                    </div>
+                    <div id="friendSearchResults" class="space-y-1 max-h-32 overflow-y-auto custom-scroll"></div>
+                </div>
+                <div class="bg-[#2b2d31] rounded-2xl p-3 border border-[#3f4247]">
+                    <p class="uppercase text-[10px] text-slate-400 font-semibold mb-2">My Friends (<span id="friendCount">0</span>)</p>
+                    <div id="friendsList" class="space-y-2 max-h-48 overflow-y-auto custom-scroll">
+                        <p class="text-[11px] text-slate-500 text-center py-4">No friends yet. Add some!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Golden Text CSS -->
+    <style>
+        .golden-text {
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 25%, #ffd700 50%, #ffed4e 75%, #ffd700 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+            font-weight: 700;
+        }
+        .daily-reward-day {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.75rem;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.2s;
+        }
+        .daily-reward-day.active {
+            background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+            border-color: #f59e0b;
+            transform: scale(1.05);
+        }
+        .daily-reward-day.claimed {
+            background: rgba(16, 185, 129, 0.2);
+            border-color: #10b981;
+        }
+        .daily-reward-day.pending {
+            opacity: 0.5;
+        }
+
+        /* Clan Styles */
+        .clan-role-owner { color: #f59e0b; font-weight: 700; }
+        .clan-role-coowner { color: #a855f7; font-weight: 600; }
+        .clan-role-admin { color: #3b82f6; font-weight: 600; }
+        .clan-role-moderator { color: #10b981; font-weight: 500; }
+        .clan-role-member { color: #94a3b8; }
+
+        /* Name Colors */
+        .name-rainbow {
+            background: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: rainbow-shift 3s linear infinite;
+        }
+        @keyframes rainbow-shift { 0% { filter: hue-rotate(0deg); } 100% { filter: hue-rotate(360deg); } }
+
+        .name-red { color: #ef4444; }
+        .name-blue { color: #3b82f6; }
+        .name-green { color: #22c55e; }
+        .name-purple { color: #a855f7; }
+        .name-pink { color: #ec4899; }
+        .name-orange { color: #f97316; }
+        .name-cyan { color: #06b6d4; }
+        .name-white { color: #ffffff; }
+    </style>
+
+    <!-- Clans Overlay -->
+    <div id="clansOverlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[118] flex items-center justify-center hidden">
+        <div class="bg-[#1e1f22] text-white rounded-3xl w-full max-w-2xl mx-4 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+            <div class="h-16 bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 flex items-center justify-between px-6">
+                <div>
+                    <p class="text-[10px] uppercase tracking-[0.2em] text-violet-100/80 font-semibold">Community</p>
+                    <p class="text-sm font-semibold">Clans</p>
+                </div>
+                <button onclick="closeClansOverlay()" class="p-1.5 rounded-full bg-black/30 hover:bg-black/50">
+                    <i data-lucide="x" class="w-4 h-4 text-slate-100"></i>
+                </button>
+            </div>
+            <div class="flex-1 overflow-y-auto">
+                <div id="clanMainView" class="px-6 py-4 space-y-4 text-xs">
+                    <!-- No Clan View -->
+                    <div id="noClanView" class="text-center py-8">
+                        <p class="text-lg mb-2">🛡️</p>
+                        <p class="text-[11px] text-slate-400 mb-4">You're not in a clan yet</p>
+                        <div class="space-y-2">
+                            <button onclick="showCreateClanForm()" class="w-full py-3 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-[11px] font-semibold">
+                                Create Clan (10,000 Coins)
+                            </button>
+                            <button onclick="showJoinClanForm()" class="w-full py-3 rounded-xl bg-[#2b2d31] hover:bg-[#3f4247] text-[11px] font-semibold">
+                                Join Clan
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Create Clan Form -->
+                    <div id="createClanForm" class="hidden space-y-3">
+                        <p class="uppercase text-[10px] text-slate-400 font-semibold">Create Your Clan</p>
+                        <input id="clanNameInput" type="text" placeholder="Clan name..." maxlength="24" class="w-full px-3 py-2 rounded-xl bg-[#1e1f22] border border-[#3f4247] text-[11px] outline-none">
+                        <textarea id="clanDescInput" rows="2" placeholder="Description..." maxlength="100" class="w-full px-3 py-2 rounded-xl bg-[#1e1f22] border border-[#3f4247] text-[11px] outline-none"></textarea>
+                        <p id="createClanError" class="text-[10px] text-rose-400 min-h-[14px]"></p>
+                        <div class="flex gap-2">
+                            <button onclick="cancelCreateClan()" class="flex-1 py-2 rounded-xl bg-[#313338] hover:bg-[#3f4147] text-[11px]">Cancel</button>
+                            <button onclick="createClan()" class="flex-1 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-[11px] font-semibold">Create (10k)</button>
+                        </div>
+                    </div>
+
+                    <!-- Join Clan Form -->
+                    <div id="joinClanForm" class="hidden space-y-3">
+                        <p class="uppercase text-[10px] text-slate-400 font-semibold">Join a Clan</p>
+                        <input id="clanSearchInput" type="text" placeholder="Search clan name..." class="w-full px-3 py-2 rounded-xl bg-[#1e1f22] border border-[#3f4247] text-[11px] outline-none" oninput="searchClans()">
+                        <div id="clanSearchResults" class="space-y-1 max-h-40 overflow-y-auto custom-scroll"></div>
+                        <button onclick="cancelJoinClan()" class="w-full py-2 rounded-xl bg-[#313338] hover:bg-[#3f4147] text-[11px]">Back</button>
+                    </div>
+
+                    <!-- Clan Detail View -->
+                    <div id="clanDetailView" class="hidden space-y-3">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 id="clanDetailName" class="text-sm font-bold text-violet-400">Clan Name</h3>
+                                <p id="clanDetailDesc" class="text-[10px] text-slate-400">Description</p>
+                            </div>
+                            <span id="clanDetailTag" class="px-2 py-1 rounded bg-violet-600/30 text-[10px] text-violet-300">TAG</span>
+                        </div>
+
+                        <div class="bg-[#2b2d31] rounded-2xl p-3 border border-[#3f4247]">
+                            <div class="flex items-center justify-between mb-2">
+                                <p class="uppercase text-[10px] text-slate-400 font-semibold">Members (<span id="clanMemberCount">0</span>)</p>
+                                <span id="clanMyRole" class="text-[10px] clan-role-member">Member</span>
+                            </div>
+                            <div id="clanMembersList" class="space-y-2 max-h-48 overflow-y-auto custom-scroll"></div>
+                        </div>
+
+                        <!-- Member Actions (visible to non-owners) -->
+                        <div id="clanMemberActions" class="hidden space-y-2">
+                            <button onclick="leaveClan()" class="w-full py-2 rounded-xl bg-rose-600/80 hover:bg-rose-600 text-[11px] font-semibold">Leave Clan</button>
+                        </div>
+
+                        <!-- Admin Actions (visible to owner/co-owner/admin) -->
+                        <div id="clanAdminActions" class="hidden space-y-3">
+                            <p class="uppercase text-[10px] text-slate-400 font-semibold">Admin Controls</p>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button onclick="showClanInviteForm()" class="py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-[10px] font-semibold">Invite</button>
+                                <button onclick="showClanManageForm()" class="py-2 rounded-xl bg-[#313338] hover:bg-[#3f4147] text-[10px] font-semibold">Manage</button>
+                            </div>
+                        </div>
+
+                        <!-- Clan Chat -->
+                        <div class="bg-[#2b2d31] rounded-2xl p-3 border border-[#3f4247] space-y-2">
+                            <p class="uppercase text-[10px] text-slate-400 font-semibold">Clan Chat</p>
+                            <div id="clanChatMessages" class="h-32 overflow-y-auto custom-scroll space-y-1 text-[10px]"></div>
+                            <div class="flex gap-2">
+                                <input id="clanChatInput" type="text" placeholder="Type message..." class="flex-1 px-3 py-2 rounded-xl bg-[#1e1f22] border border-[#3f4247] text-[11px] outline-none" onkeypress="if(event.key==='Enter')sendClanChatMessage()">
+                                <button onclick="sendClanChatMessage()" class="px-3 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-[11px] font-semibold">Send</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Customization Overlay -->
+    <div id="profileCustomizeOverlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[118] flex items-center justify-center hidden">
+        <div class="bg-[#1e1f22] text-white rounded-3xl w-full max-w-md mx-4 shadow-2xl overflow-hidden">
+            <div class="h-16 bg-gradient-to-r from-sky-500 via-cyan-500 to-teal-500 flex items-center justify-between px-6">
+                <div>
+                    <p class="text-[10px] uppercase tracking-[0.2em] text-sky-100/80 font-semibold">Profile</p>
+                    <p class="text-sm font-semibold">Customization</p>
+                </div>
+                <button onclick="closeProfileCustomizeOverlay()" class="p-1.5 rounded-full bg-black/30 hover:bg-black/50">
+                    <i data-lucide="x" class="w-4 h-4 text-slate-100"></i>
+                </button>
+            </div>
+            <div class="px-6 py-4 space-y-4 text-xs">
+                <!-- Profile Theme -->
+                <div class="bg-[#2b2d31] rounded-2xl p-3 border border-[#3f4247] space-y-2">
+                    <p class="uppercase text-[10px] text-slate-400 font-semibold">Profile Theme</p>
+                    <div class="grid grid-cols-4 gap-2">
+                        <button onclick="setProfileTheme('default')" class="p-2 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 text-[9px]">Default</button>
+                        <button onclick="setProfileTheme('dark')" class="p-2 rounded-lg bg-slate-900 border border-slate-700 text-[9px]">Dark</button>
+                        <button onclick="setProfileTheme('ocean')" class="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 text-[9px]">Ocean</button>
+                        <button onclick="setProfileTheme('sunset')" class="p-2 rounded-lg bg-gradient-to-r from-orange-500 to-pink-500 text-[9px]">Sunset</button>
+                        <button onclick="setProfileTheme('forest')" class="p-2 rounded-lg bg-gradient-to-r from-emerald-500 to-green-600 text-[9px]">Forest</button>
+                        <button onclick="setProfileTheme('royal')" class="p-2 rounded-lg bg-gradient-to-r from-amber-500 to-yellow-600 text-[9px]">Royal</button>
+                        <button onclick="setProfileTheme('midnight')" class="p-2 rounded-lg bg-gradient-to-r from-violet-900 to-purple-900 text-[9px]">Midnight</button>
+                        <button onclick="setProfileTheme('cherry')" class="p-2 rounded-lg bg-gradient-to-r from-rose-500 to-red-600 text-[9px]">Cherry</button>
+                    </div>
+                </div>
+
+                <!-- Name Color -->
+                <div class="bg-[#2b2d31] rounded-2xl p-3 border border-[#3f4247] space-y-2">
+                    <p class="uppercase text-[10px] text-slate-400 font-semibold">Name Color</p>
+                    <div class="grid grid-cols-4 gap-2">
+                        <button onclick="setNameColor('default')" class="p-2 rounded-lg bg-slate-600 text-[9px] text-white">Default</button>
+                        <button onclick="setNameColor('rainbow')" class="p-2 rounded-lg name-rainbow text-[9px]">Rainbow</button>
+                        <button onclick="setNameColor('red')" class="p-2 rounded-lg name-red text-[9px]">Red</button>
+                        <button onclick="setNameColor('blue')" class="p-2 rounded-lg name-blue text-[9px]">Blue</button>
+                        <button onclick="setNameColor('green')" class="p-2 rounded-lg name-green text-[9px]">Green</button>
+                        <button onclick="setNameColor('purple')" class="p-2 rounded-lg name-purple text-[9px]">Purple</button>
+                        <button onclick="setNameColor('pink')" class="p-2 rounded-lg name-pink text-[9px]">Pink</button>
+                        <button onclick="setNameColor('golden')" class="p-2 rounded-lg golden-text text-[9px]">Golden</button>
+                    </div>
+                </div>
+
+                <!-- Custom Status -->
+                <div class="bg-[#2b2d31] rounded-2xl p-3 border border-[#3f4247] space-y-2">
+                    <p class="uppercase text-[10px] text-slate-400 font-semibold">Custom Status</p>
+                    <div class="flex gap-2 mb-2">
+                        <select id="statusEmoji" class="px-2 py-2 rounded-lg bg-[#1e1f22] border border-[#3f4247] text-[11px] outline-none">
+                            <option value="">😀</option>
+                            <option value="🎮">🎮</option>
+                            <option value="💰">💰</option>
+                            <option value="🔨">🔨</option>
+                            <option value="😴">😴</option>
+                            <option value="🍕">🍕</option>
+                            <option value="💎">💎</option>
+                            <option value="🔥">🔥</option>
+                            <option value="💤">💤</option>
+                        </select>
+                        <input id="statusTextInput" type="text" placeholder="What's happening?" maxlength="32" class="flex-1 px-3 py-2 rounded-lg bg-[#1e1f22] border border-[#3f4247] text-[11px] outline-none">
+                    </div>
+                    <button onclick="setCustomStatus()" class="w-full py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-[11px] font-semibold">Set Status</button>
+                    <button onclick="clearCustomStatus()" class="w-full py-2 rounded-xl bg-[#313338] hover:bg-[#3f4147] text-[11px]">Clear Status</button>
+                </div>
+            </div>
+        </div>
+    </div>
     </body>
     </html>
