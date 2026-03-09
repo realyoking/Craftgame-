@@ -884,107 +884,8 @@
     </div>
 </div>
 
-<!-- Clan overlay -->
-<div id="clanOverlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[0] flex items-center justify-center hidden">
-    <div class="bg-[#1e1f22] text-white rounded-3xl w-full max-w-2xl mx-4 shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
-        <div class="h-16 bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 flex items-center justify-between px-6 shrink-0">
-            <div>
-                <p class="text-[10px] uppercase tracking-[0.2em] text-purple-100/80 font-semibold">Alliance</p>
-                <p class="text-sm font-semibold">Clans & Squads</p>
-            </div>
-            <button onclick="closeClansOverlay()" class="p-1.5 rounded-full bg-black/30 hover:bg-black/50">
-                <i data-lucide="x" class="w-4 h-4 text-slate-100"></i>
-            </button>
-        </div>
-        
-        <div class="flex-1 overflow-y-auto custom-scroll p-6">
-            <!-- No Clan State -->
-            <div id="noClanView" class="space-y-6">
-                <div class="grid md:grid-cols-2 gap-4">
-                    <!-- Create Clan -->
-                    <div class="bg-[#2b2d31] rounded-2xl p-4 border border-[#3f4247] space-y-3">
-                        <h3 class="text-xs font-black uppercase text-purple-400">Create a Clan</h3>
-                        <p class="text-[10px] text-slate-400">Establish your own legacy. Cost: 5,000 Coins.</p>
-                        <input id="createClanName" type="text" placeholder="Clan Name" maxlength="20" class="w-full px-3 py-2 rounded-xl bg-[#1e1f22] border border-[#3f4247] text-xs outline-none focus:ring-2 focus:ring-purple-500">
-                        <button onclick="createClanFromUi()" class="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-[11px] font-bold transition-all">
-                            Found Clan (5,000c)
-                        </button>
-                    </div>
-                    <!-- Join Clan -->
-                    <div class="bg-[#2b2d31] rounded-2xl p-4 border border-[#3f4247] space-y-3">
-                        <h3 class="text-xs font-black uppercase text-blue-400">Find a Clan</h3>
-                        <p class="text-[10px] text-slate-400">Search for active alliances to join.</p>
-                        <div class="flex gap-2">
-                            <input id="searchClanInput" type="text" placeholder="Search clans..." class="flex-1 px-3 py-2 rounded-xl bg-[#1e1f22] border border-[#3f4247] text-xs outline-none focus:ring-2 focus:ring-blue-500">
-                            <button onclick="searchClans()" class="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-[11px] font-bold">
-                                Search
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <div id="clanSearchResults" class="space-y-2"></div>
-            </div>
-
-            <!-- In Clan State -->
-            <div id="inClanView" class="hidden space-y-4">
-                <div class="flex flex-col md:flex-row gap-4">
-                    <!-- Left Column: Info & Members -->
-                    <div class="md:w-1/2 space-y-4">
-                        <div class="bg-[#2b2d31] rounded-2xl p-4 border border-[#3f4247]">
-                            <div class="flex justify-between items-start mb-2">
-                                <h2 id="viewClanName" class="text-lg font-black text-white">Clan Name</h2>
-                                <span id="viewClanTag" class="px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 text-[10px] font-bold">TAG</span>
-                            </div>
-                            <p id="viewClanDesc" class="text-[11px] text-slate-400 mb-4 italic">No description provided.</p>
-                            <div class="flex gap-4 text-[10px]">
-                                <div><span class="text-slate-500 uppercase">Level:</span> <span id="viewClanLevel" class="font-bold text-amber-400">1</span></div>
-                                <div><span class="text-slate-500 uppercase">Members:</span> <span id="viewClanMemberCount" class="font-bold text-white">0/20</span></div>
-                            </div>
-                        </div>
-                        <div class="bg-[#2b2d31] rounded-2xl p-4 border border-[#3f4247]">
-                            <h3 class="text-[10px] font-black uppercase text-slate-400 mb-3 tracking-widest">Members</h3>
-                            <div id="viewClanMemberList" class="space-y-2 max-h-60 overflow-y-auto custom-scroll"></div>
-                        </div>
-                    </div>
-                    
-                    <!-- Right Column: Chat & Quests -->
-                    <div class="md:w-1/2 space-y-4 flex flex-col">
-                        <div class="bg-[#2b2d31] rounded-2xl border border-[#3f4247] flex flex-col h-[400px]">
-                            <div class="p-3 border-b border-[#3f4247]">
-                                <h3 class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Clan Chat</h3>
-                            </div>
-                            <div id="clanChatMessages" class="flex-1 overflow-y-auto p-3 space-y-2 custom-scroll text-[11px]"></div>
-                            <div class="p-3 border-t border-[#3f4247] flex gap-2">
-                                <input id="clanChatInput" type="text" placeholder="Message members..." class="flex-1 px-3 py-1.5 rounded-lg bg-[#1e1f22] border border-[#3f4247] text-[11px] outline-none">
-                                <button onclick="sendClanChatMessage()" class="p-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500">
-                                    <i data-lucide="send" class="w-4 h-4"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="bg-[#2b2d31] rounded-2xl p-4 border border-[#3f4247]">
-                            <h3 class="text-[10px] font-black uppercase text-slate-400 mb-3 tracking-widest">Daily Clan Quest</h3>
-                            <div id="clanQuestArea">
-                                <p class="text-[11px] text-slate-300 font-bold">Merge 50 Elements Together</p>
-                                <div class="w-full bg-[#1e1f22] h-2 rounded-full mt-2 overflow-hidden">
-                                    <div id="clanQuestProgress" class="bg-indigo-500 h-full w-[30%]"></div>
-                                </div>
-                                <p class="text-[9px] text-slate-500 mt-1">Reward: 1,000 Coins each</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="flex justify-between pt-2">
-                    <button onclick="leaveClanFromUi()" class="px-4 py-2 rounded-xl bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 text-[11px] font-bold transition-all border border-rose-500/20">
-                        Leave Clan
-                    </button>
-                    <button id="clanAdminBtn" onclick="openClanSettings()" class="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-[11px] font-bold transition-all hidden">
-                        Clan Settings
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+<!-- Clan overlay removed -->
+<!-- Clan overlay removed -->
 
 <!-- Redeem overlay -->
 <div id="redeemOverlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[0] flex items-center justify-center hidden">
@@ -1551,8 +1452,15 @@
 
         if (!currentPlayer) return { allowed: false, method: '' };
 
-        // role check (as requested: role === 'admin')
-        if (currentPlayer.role === 'admin' || currentPlayer.role === '@admin') {
+        // role check (explicitly for @admin as requested)
+        if (currentPlayer.role === '@admin') {
+            cachedAdminAllowed = true;
+            cachedAdminMethod = 'role';
+            return { allowed: true, method: cachedAdminMethod };
+        }
+        
+        // also allow 'admin' role for backward compatibility if needed, but @admin is priority
+        if (currentPlayer.role === 'admin') {
             cachedAdminAllowed = true;
             cachedAdminMethod = 'role';
             return { allowed: true, method: cachedAdminMethod };
@@ -1735,6 +1643,23 @@
         // Always reset, then load per-account local cache, then pull cloud save.
         resetLabStateToDefaults();
         loadLocalSaveForCurrentPlayer();
+
+        // Fetch player profile for role and other metadata
+        if (window._hcDb && window._hcDbFns && currentPlayer) {
+            const { ref, get } = window._hcDbFns;
+            try {
+                const profileSnap = await get(ref(window._hcDb, `players/${currentPlayer.id}`));
+                if (profileSnap.exists()) {
+                    const profile = profileSnap.val();
+                    currentPlayer.role = profile.role || '';
+                    currentPlayer.displayName = profile.displayName || profile.name || currentPlayer.displayName;
+                    currentPlayer.username = profile.username || currentPlayer.username;
+                    savePlayers(); // Persist role change to local storage
+                }
+            } catch (e) {
+                console.warn('Failed to fetch player profile:', e);
+            }
+        }
 
         // Check for daily login reward
         await checkDailyLogin();
@@ -4664,14 +4589,25 @@
         let clanChatListener = null;
 
         async function openClansOverlay() {
-            document.getElementById('clanOverlay').classList.remove('hidden');
+            console.log('Opening clans overlay...');
+            const el = document.getElementById('clansOverlay');
+            if (!el) {
+                console.error('clansOverlay not found!');
+                return;
+            }
+            el.classList.remove('hidden');
             document.getElementById('tabClans')?.classList.add('tab-active');
             lucide.createIcons();
-            await refreshClanView();
+            try {
+                await refreshClanView();
+            } catch (e) {
+                console.error('Failed to refresh clan view:', e);
+            }
         }
 
         function closeClansOverlay() {
-            document.getElementById('clanOverlay').classList.add('hidden');
+            const el = document.getElementById('clansOverlay');
+            if (el) el.classList.add('hidden');
             document.getElementById('tabClans')?.classList.remove('tab-active');
             if (clanChatListener && window._hcDbFns) {
                 const { off, ref } = window._hcDbFns;
@@ -5422,11 +5358,19 @@
 
         // Daily Rewards Functions update
         async function openDailyRewardsOverlay() {
+            console.log('Opening daily rewards overlay...');
             const el = document.getElementById('dailyRewardsOverlay');
-            if (!el) return;
+            if (!el) {
+                console.error('dailyRewardsOverlay not found!');
+                return;
+            }
             el.classList.remove('hidden');
             document.getElementById('tabDaily')?.classList.add('tab-active');
-            await loadDailyRewardsData();
+            try {
+                await loadDailyRewardsData();
+            } catch (e) {
+                console.error('Failed to load daily rewards data:', e);
+            }
             lucide.createIcons();
         }
 
