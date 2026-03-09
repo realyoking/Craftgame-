@@ -6,6 +6,7 @@
     <title>HumanCraft Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
 
@@ -26,26 +27,7 @@
             background-color: var(--bg-light);
         }
 
-        .board-grid { 
-            background-image: radial-gradient(#e2e8f0 1.5px, transparent 1.5px); 
-            background-size: 50px 50px; 
-            transition: background-color 0.5s ease;
-        }
-        .theme-dark .board-grid { 
-            background-image: radial-gradient(#334155 1.5px, transparent 1.5px); 
-            background-color: var(--bg-dark); 
-        }
 
-        .item-card { 
-            will-change: transform; 
-            z-index: 10;
-            min-width: 160px;
-            touch-action: none;
-        }
-        .item-card:not(.dragging) {
-            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        .item-card:active { transform: scale(1.05) rotate(2deg); cursor: grabbing; }
 
         .rarity-container { position: relative; overflow: hidden; border-width: 2px; }
 
@@ -142,7 +124,7 @@
         .shop-card { background: white; border: 1px solid #f1f5f9; transition: all 0.3s ease; }
         .shop-card:hover { transform: translateY(-4px) scale(1.01); border-color: #6366f1; box-shadow: 0 10px 25px -10px rgba(15,23,42,0.3); }
 
-        #toast { position: fixed; bottom: 20px; right: 20px; z-index: 200; transform: translateY(100px); transition: transform 0.3s ease, opacity 0.3s ease; opacity: 0; }
+        #toast { position: fixed; bottom: 20px; right: 20px; z-index: 0; transform: translateY(100px); transition: transform 0.3s ease, opacity 0.3s ease; opacity: 0; }
         #toast.active { transform: translateY(0); opacity: 1; }
 
         /* iPad / mobile safe area support */
@@ -210,7 +192,7 @@
 <body class="bg-slate-50 transition-colors duration-500" id="bodyRoot">
 
 <!-- Global announcement bar -->
-<div id="announcementBar" class="fixed top-3 left-1/2 -translate-x-1/2 z-[95] hidden w-[min(640px,calc(100%-24px))]">
+<div id="announcementBar" class="fixed top-3 left-1/2 -translate-x-1/2 z-[0] hidden w-[min(640px,calc(100%-24px))]">
     <div class="bg-slate-900 text-white rounded-2xl shadow-2xl border border-white/10 px-4 py-3 flex items-start justify-between gap-3">
         <div class="flex items-start gap-2">
             <i data-lucide="megaphone" class="w-4 h-4 text-amber-400 mt-0.5"></i>
@@ -228,18 +210,13 @@
 <div class="flex h-screen w-full overflow-hidden">
     <!-- Sidebar -->
     <div id="sidebar" class="relative w-20 md:w-80 bg-white border-r border-slate-200 flex flex-col z-40">
-        <!-- Drag-to-delete indicator (appears when dragging over sidebar) -->
-        <div id="trashDropIndicator" class="hidden pointer-events-none absolute inset-0 items-center justify-center">
-            <div class="h-14 w-14 rounded-2xl bg-rose-500/90 text-white flex items-center justify-center shadow-2xl ring-4 ring-rose-300/30">
-                <i data-lucide="trash-2" class="w-7 h-7"></i>
-            </div>
-        </div>
+
         <div class="p-4 md:p-6 border-b">
             <h1 class="text-xl md:text-2xl font-black text-indigo-600 flex items-center gap-2">
                 <i data-lucide="zap" class="fill-indigo-600 w-6 h-6"></i> 
                 <span class="hidden md:inline">HumanCraft</span>
             </h1>
-            <div class="hidden md:flex items-center justify-between gap-3 mt-4 bg-slate-100 p-3 rounded-2xl w-full">
+            <div class="hidden md:flex items-center gap-3 mt-4 bg-slate-100 p-3 rounded-2xl w-full">
                 <div class="flex items-center gap-2">
                     <i data-lucide="database" class="w-4 h-4 text-amber-600"></i>
                     <div class="flex flex-col">
@@ -247,13 +224,6 @@
                         <span id="coinBalance" class="font-black text-slate-800 text-lg leading-none money-scroll">0</span>
                     </div>
                 </div>
-                <button
-                    onclick="openLeaderboard()"
-                    class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white text-[10px] font-semibold text-slate-600 border border-slate-200 hover:bg-slate-50"
-                >
-                    <i data-lucide="trophy" class="w-3.5 h-3.5 text-amber-500"></i>
-                    Board
-                </button>
             </div>
         </div>
 
@@ -291,24 +261,15 @@
                     <i data-lucide="gift" class="w-5 h-5"></i>
                     <span class="hidden md:inline font-bold text-sm">Daily Rewards</span>
                 </button>
-                <button onclick="openFriendsOverlay()" id="tabFriends" class="w-full flex items-center gap-3 p-3 rounded-xl transition-all text-slate-400">
-                    <i data-lucide="heart-handshake" class="w-5 h-5"></i>
-                    <span class="hidden md:inline font-bold text-sm">Friends</span>
-                </button>
                 <button onclick="openClansOverlay()" id="tabClans" class="w-full flex items-center gap-3 p-3 rounded-xl transition-all text-slate-400">
                     <i data-lucide="shield" class="w-5 h-5"></i>
                     <span class="hidden md:inline font-bold text-sm">Clans</span>
                 </button>
-                <button onclick="openProfileCustomizeOverlay()" id="tabCustomize" class="w-full flex items-center gap-3 p-3 rounded-xl transition-all text-slate-400">
-                    <i data-lucide="paintbrush" class="w-5 h-5"></i>
-                    <span class="hidden md:inline font-bold text-sm">Customize</span>
-                </button>
             </nav>
 
             <div id="inventoryContainer">
-                <div class="flex justify-between items-center px-3 mb-3">
-                    <h3 class="hidden md:block text-[10px] font-black text-slate-400 uppercase tracking-widest">Spawn</h3>
-                    <button onclick="spawnAllOneByOne()" class="text-[10px] font-bold text-indigo-500 hover:text-indigo-700 uppercase">Spawn All</button>
+                <div class="px-3 mb-3">
+                    <h3 class="hidden md:block text-[10px] font-black text-slate-400 uppercase tracking-widest">Collection</h3>
                 </div>
                 <div id="inventoryList" class="grid grid-cols-1 gap-2"></div>
             </div>
@@ -328,10 +289,6 @@
                             <p id="profileDisplayName" class="text-sm font-semibold text-slate-900 truncate">—</p>
                             <p id="profileHandle" class="text-[11px] text-slate-400 truncate">—</p>
                         </div>
-                        <button onclick="openLeaderboard()" class="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white text-[10px] font-semibold text-slate-600 border border-slate-200 hover:bg-slate-50">
-                            <i data-lucide="trophy" class="w-3.5 h-3.5 text-amber-500"></i>
-                            Board
-                        </button>
                     </div>
                 </div>
 
@@ -346,22 +303,8 @@
                             <span class="text-[11px] text-slate-500">Play Time</span>
                             <span id="profilePlaytime" class="text-[11px] font-semibold text-slate-700">0m</span>
                         </div>
-                    </div>
-
-                    <div class="bg-white border border-slate-200 rounded-2xl p-4 space-y-3">
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Customize</p>
-                        <input
-                            id="displayNameInput"
-                            type="text"
-                            maxlength="18"
-                            placeholder="Display name"
-                            class="w-full px-3 py-2 rounded-xl border border-slate-200 text-[11px] outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                        />
-                        <button
-                            onclick="saveDisplayName()"
-                            class="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-[10px] font-black uppercase tracking-[0.18em]"
-                        >
-                            Save
+                        <button onclick="openProfileOverlay()" class="w-full mt-2 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-[10px] font-black uppercase tracking-[0.18em]">
+                            Open Full Profile
                         </button>
                     </div>
 
@@ -438,24 +381,31 @@
             </div>
         </div>
         <div id="sidebarControls" class="p-4 border-t bg-slate-50">
-            <div class="grid grid-cols-2 gap-2">
-                <button onclick="clearBoard()" class="p-2 bg-white border rounded-xl hover:bg-rose-50 hover:text-rose-600 transition-colors">
-                    <i data-lucide="trash-2" class="w-4 h-4 mx-auto"></i>
-                </button>
-                <button onclick="toggleTheme()" class="p-2 bg-white border rounded-xl hover:bg-indigo-50 transition-colors">
-                    <i data-lucide="moon" class="w-4 h-4 mx-auto"></i>
-                </button>
-            </div>
+            <button onclick="toggleTheme()" class="w-full p-2 bg-white border rounded-xl hover:bg-indigo-50 transition-colors">
+                <i data-lucide="moon" class="w-4 h-4 mx-auto"></i>
+            </button>
         </div>
     </div>
 
     <!-- Right side: Lab board or Chat screen -->
     <div class="flex-1 relative overflow-hidden">
         <div id="board" class="absolute inset-0 bg-slate-50 board-grid overflow-hidden">
-            <div id="emptyState" class="absolute inset-0 flex flex-col items-center justify-center opacity-10 pointer-events-none">
-                <i data-lucide="microscope" class="w-32 h-32 mb-4"></i>
-                <h2 class="text-2xl font-black uppercase">Laboratory</h2>
-            </div>
+        </div>
+
+        <!-- Utility Bar (Bottom Right) -->
+        <div class="absolute bottom-6 right-6 flex items-center gap-3 z-50">
+            <button onclick="spawnAllOneByOne()" class="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-2xl shadow-lg hover:bg-slate-50 transition-all font-bold text-xs uppercase tracking-wider">
+                <i data-lucide="plus-circle" class="w-4 h-4 text-indigo-500"></i>
+                Place All
+            </button>
+            <button onclick="clearBoard()" class="p-2.5 bg-white border border-slate-200 text-rose-500 rounded-2xl shadow-lg hover:bg-rose-50 transition-all">
+                <i data-lucide="trash-2" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <div id="welcomePlaceholder" class="absolute inset-0 flex flex-col items-center justify-center opacity-10 pointer-events-none">
+            <i data-lucide="zap" class="w-32 h-32 mb-4"></i>
+            <h2 class="text-2xl font-black uppercase">HumanCraft</h2>
         </div>
 
         <div id="chatRight" class="absolute inset-0 hidden bg-white text-xs">
@@ -488,8 +438,14 @@
                         </div>
                     </div>
                     <div class="flex-1 flex flex-col bg-slate-50">
-                        <div id="chatMessages" class="flex-1 overflow-y-auto custom-scroll px-3 py-2 text-[11px] space-y-1"></div>
-                        <div class="border-t border-slate-200 p-2 space-y-1 bg-white">
+                            <div id="chatMessages" class="flex-1 overflow-y-auto custom-scroll px-3 py-2 text-[11px] space-y-1"></div>
+                            <div id="chatUploadProgress" class="hidden px-3 py-1 bg-indigo-50 border-t border-indigo-100 flex items-center justify-between">
+                                <span class="text-[9px] text-indigo-600 font-bold uppercase tracking-wider">Uploading...</span>
+                                <div class="w-24 h-1.5 bg-indigo-200 rounded-full overflow-hidden">
+                                    <div id="chatUploadProgressBar" class="h-full bg-indigo-600 transition-all duration-300" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div class="border-t border-slate-200 p-2 space-y-1 bg-white">
                             <textarea id="chatInput" rows="2" placeholder="Type a message..."
                                       class="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-[11px] outline-none"></textarea>
                             <div class="flex items-center gap-2">
@@ -528,7 +484,7 @@
     </div>
 </div>
 
-<div id="discoveryOverlay" class="fixed inset-0 bg-slate-900/70 backdrop-blur-xl z-[100] flex items-center justify-center hidden">
+<div id="discoveryOverlay" class="fixed inset-0 bg-slate-900/70 backdrop-blur-xl z-[0] flex items-center justify-center hidden">
     <div class="bg-white rounded-[32px] px-8 py-9 text-center max-w-sm w-full mx-4 shadow-2xl border border-slate-100">
         <p class="text-[10px] font-semibold tracking-[0.2em] uppercase text-slate-400 mb-3 flex items-center justify-center gap-2">
             <span class="inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
@@ -552,7 +508,7 @@
 </div>
 
 <!-- Player auth overlay -->
-<div id="playerOverlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[120] flex items-center justify-center hidden">
+<div id="playerOverlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[0] flex items-center justify-center hidden">
     <div class="bg-white rounded-[28px] px-7 py-8 w-full max-w-sm mx-4 shadow-2xl border border-slate-100">
         <h2 class="text-lg font-black text-slate-900 mb-2 flex items-center gap-2">
             <i data-lucide="user" class="w-5 h-5 text-indigo-500"></i>
@@ -652,7 +608,7 @@
 </div>
 
 <!-- Fight Request Modal -->
-<div id="fightRequestModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[130] flex items-center justify-center hidden">
+<div id="fightRequestModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[0] flex items-center justify-center hidden">
     <div class="bg-white rounded-[28px] px-7 py-8 w-full max-w-sm mx-4 shadow-2xl border border-slate-100">
         <h3 class="text-lg font-black text-slate-900 mb-4 flex items-center gap-2">
             <i data-lucide="sword" class="w-5 h-5 text-rose-500"></i>
@@ -670,8 +626,7 @@
     </div>
 </div>
 
-<!-- Leaderboard overlay -->
-<div id="leaderboardOverlay" class="fixed inset-0 bg-slate-900/70 backdrop-blur-xl z-[110] flex items-center justify-center hidden">
+<div id="leaderboardOverlay" class="fixed inset-0 bg-slate-900/70 backdrop-blur-xl z-[0] flex items-center justify-center hidden">
     <div class="bg-white rounded-[28px] px-7 py-7 w-full max-w-md mx-4 shadow-2xl border border-slate-100 flex flex-col gap-4">
         <div class="flex items-center justify-between gap-3">
             <div>
@@ -682,27 +637,28 @@
                 <i data-lucide="x" class="w-4 h-4 text-slate-500"></i>
             </button>
         </div>
-        <input
-            id="leaderboardSearch"
-            type="text"
-            placeholder="Search players..."
-            class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            oninput="renderLeaderboard()"
-        />
         <div id="leaderboardList" class="space-y-1 max-h-72 overflow-y-auto custom-scroll text-xs"></div>
     </div>
 </div>
 
 <!-- Discord-style profile overlay -->
-<div id="profileOverlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[115] flex items-center justify-center hidden">
+<div id="profileOverlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[0] flex items-center justify-center hidden">
     <div class="bg-[#1e1f22] text-white rounded-3xl w-full max-w-md mx-4 shadow-2xl overflow-hidden">
         <div id="profileAccent" class="h-20 bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-400"></div>
         <div class="relative px-6 pb-4">
             <div class="flex justify-between items-start -mt-10">
                 <div class="flex items-center gap-4">
-                    <div class="h-16 w-16 rounded-full border-4 border-[#1e1f22] bg-slate-800 flex items-center justify-center text-2xl font-black overflow-hidden">
-                        <img id="profileCardAvatarImg" class="h-full w-full object-cover hidden">
-                        <span id="profileCardAvatar" class="">HC</span>
+                    <div class="relative">
+                        <div class="h-16 w-16 rounded-full border-4 border-[#1e1f22] bg-slate-800 flex items-center justify-center text-2xl font-black overflow-hidden relative">
+                            <img id="profileCardAvatarImg" class="h-full w-full object-cover hidden">
+                            <span id="profileCardAvatar" class="">HC</span>
+                        </div>
+                        <div id="profileCardStatusBubble" class="status-bubble hidden">
+                            <span id="profileCardStatusEmoji"></span>
+                            <div class="status-bubble-tooltip">
+                                <span id="profileCardStatusText"></span>
+                            </div>
+                        </div>
                     </div>
                     <div>
                         <p id="profileCardDisplayName" class="text-lg font-semibold">Display Name</p>
@@ -767,6 +723,52 @@
                             <input id="profileEditBannerFile" type="file" accept="image/*" class="w-full text-[10px] text-slate-300 file:bg-[#313338] file:border-0 file:px-2 file:py-1 file:text-[10px] file:text-slate-100">
                         </div>
                     </div>
+
+                    <!-- Profile Theme Presets -->
+                    <div class="space-y-1.5 pt-2 border-t border-[#3f4247]">
+                        <p class="uppercase text-[10px] text-slate-400 font-semibold">Profile Theme Presets</p>
+                        <div class="grid grid-cols-4 gap-1.5">
+                            <button onclick="setProfileTheme('default')" class="py-1.5 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 text-[9px]">Default</button>
+                            <button onclick="setProfileTheme('dark')" class="py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-[9px]">Dark</button>
+                            <button onclick="setProfileTheme('ocean')" class="py-1.5 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 text-[9px]">Ocean</button>
+                            <button onclick="setProfileTheme('sunset')" class="py-1.5 rounded-lg bg-gradient-to-r from-orange-500 to-pink-500 text-[9px]">Sunset</button>
+                        </div>
+                    </div>
+
+                    <!-- Name Color & Effects -->
+                    <div class="space-y-1.5 pt-2 border-t border-[#3f4247]">
+                        <p class="uppercase text-[10px] text-slate-400 font-semibold">Name Color & Effect</p>
+                        <div class="flex flex-wrap gap-2 items-center">
+                            <select id="profileEditNameEffect" onchange="previewNameColor()" class="bg-[#1e1f22] border border-[#3f4247] rounded-lg px-2 py-1 text-[11px] outline-none">
+                                <option value="solid">Solid</option>
+                                <option value="gradient">Gradient</option>
+                                <option value="animated">Animated (Rainbow)</option>
+                            </select>
+                            <input type="color" id="profileEditNameColor1" oninput="previewNameColor()" class="w-7 h-7 rounded border-0 bg-transparent cursor-pointer" title="Primary Color">
+                            <input type="color" id="profileEditNameColor2" oninput="previewNameColor()" class="w-7 h-7 rounded border-0 bg-transparent cursor-pointer hidden" title="Secondary Color">
+                            <span id="contrastWarning" class="text-[9px] text-rose-400 hidden">Low contrast!</span>
+                        </div>
+                    </div>
+
+                    <!-- Custom Status -->
+                    <div class="space-y-1.5 pt-2 border-t border-[#3f4247]">
+                        <p class="uppercase text-[10px] text-slate-400 font-semibold">Custom Status</p>
+                        <div class="flex gap-2">
+                            <select id="profileEditStatusEmoji" class="px-2 py-1.5 rounded-lg bg-[#1e1f22] border border-[#3f4247] text-[11px] outline-none">
+                                <option value="">None</option>
+                                <option value="💭">💭</option>
+                                <option value="✨">✨</option>
+                                <option value="🔥">🔥</option>
+                                <option value="🎮">🎮</option>
+                                <option value="🛠️">🛠️</option>
+                                <option value="☕">☕</option>
+                                <option value="💤">💤</option>
+                                <option value="🧪">🧪</option>
+                            </select>
+                            <input id="profileEditStatusTextInput" type="text" maxlength="32" placeholder="What's on your mind?" class="flex-1 px-3 py-1.5 rounded-lg bg-[#1e1f22] border border-[#3f4247] text-[11px] outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        </div>
+                    </div>
+
                     <p id="profileEditError" class="text-[10px] text-rose-400 min-h-[14px]"></p>
                     <div class="flex justify-end gap-2">
                         <button onclick="cancelProfileEdit()" class="px-3 py-1.5 rounded-lg bg-[#313338] hover:bg-[#3f4147] text-[11px]">
@@ -783,7 +785,7 @@
 </div>
 
 <!-- "More" overlay: player search & discovery -->
-<div id="moreOverlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[115] flex items-center justify-center hidden">
+<div id="moreOverlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[0] flex items-center justify-center hidden">
     <div class="bg-[#1e1f22] text-white rounded-3xl w-full max-w-md mx-4 shadow-2xl overflow-hidden">
         <div class="h-16 bg-gradient-to-r from-emerald-500 via-sky-500 to-indigo-500 flex items-center justify-between px-6">
             <div>
@@ -794,30 +796,52 @@
                 <i data-lucide="x" class="w-4 h-4 text-slate-100"></i>
             </button>
         </div>
-        <div class="px-6 py-4 space-y-4 text-xs">
-            <div class="bg-[#2b2d31] rounded-2xl p-3 border border-[#3f4247] space-y-2">
-                <p class="uppercase text-[10px] text-slate-400 font-semibold">Search Players</p>
-                <input
-                    id="moreSearchInput"
-                    type="text"
-                    placeholder="Search by display name or username..."
-                    class="w-full px-3 py-1.5 rounded-lg bg-[#1e1f22] border border-[#3f4247] text-[11px] outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                    oninput="searchPlayersCombined(true)"
-                />
-                <div id="moreSearchResults" class="space-y-1 max-h-40 overflow-y-auto custom-scroll text-[11px]"></div>
+        <div class="px-6 py-4 space-y-4 text-xs overflow-y-auto max-h-[70vh] custom-scroll">
+            <!-- Tabs for More Overlay -->
+            <div class="flex gap-2 border-b border-[#3f4247] pb-2">
+                <button onclick="switchMoreTab('players')" id="moreTabPlayers" class="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all bg-[#313338] text-white">Players</button>
+                <button onclick="switchMoreTab('friends')" id="moreTabFriends" class="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all text-slate-400 hover:bg-[#2b2d31]">Friends</button>
+                <button onclick="switchMoreTab('account')" id="moreTabAccount" class="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all text-slate-400 hover:bg-[#2b2d31]">Account</button>
             </div>
 
-            <div class="bg-[#2b2d31] rounded-2xl p-3 border border-[#3f4247] space-y-2">
-                <p class="uppercase text-[10px] text-slate-400 font-semibold">Account & Data</p>
-                <div class="grid grid-cols-2 gap-2">
-                    <button
-                        onclick="openAdminOverlay()"
-                        id="btnOpenAdminPanel"
-                        class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-indigo-600/90 hover:bg-indigo-600 text-[11px] font-semibold hidden"
-                    >
-                        <i data-lucide="shield" class="w-4 h-4"></i>
-                        Admin
-                    </button>
+            <!-- Players Tab -->
+            <div id="moreSectionPlayers" class="space-y-4">
+                <div class="bg-[#2b2d31] rounded-2xl p-3 border border-[#3f4247] space-y-2">
+                    <p class="uppercase text-[10px] text-slate-400 font-semibold">Search Players</p>
+                    <input
+                        id="moreSearchInput"
+                        type="text"
+                        placeholder="Search by display name or username..."
+                        class="w-full px-3 py-1.5 rounded-lg bg-[#1e1f22] border border-[#3f4247] text-[11px] outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        oninput="searchPlayersCombined(true)"
+                    />
+                    <div id="moreSearchResults" class="space-y-1 max-h-40 overflow-y-auto custom-scroll text-[11px]"></div>
+                </div>
+            </div>
+
+            <!-- Friends Tab -->
+            <div id="moreSectionFriends" class="hidden space-y-4">
+                <div class="bg-[#2b2d31] rounded-2xl p-3 border border-[#3f4247] space-y-2">
+                    <div class="flex justify-between items-center">
+                        <p class="uppercase text-[10px] text-slate-400 font-semibold">Incoming Requests</p>
+                        <span id="friendRequestBadge" class="bg-rose-500 text-white text-[9px] px-1.5 py-0.5 rounded-full hidden">0</span>
+                    </div>
+                    <div id="friendRequestsList" class="space-y-1 max-h-32 overflow-y-auto custom-scroll"></div>
+                </div>
+                <div class="bg-[#2b2d31] rounded-2xl p-3 border border-[#3f4247] space-y-2">
+                    <p class="uppercase text-[10px] text-slate-400 font-semibold">Sent Requests</p>
+                    <div id="sentFriendRequestsList" class="space-y-1 max-h-32 overflow-y-auto custom-scroll"></div>
+                </div>
+                <div class="bg-[#2b2d31] rounded-2xl p-3 border border-[#3f4247] space-y-2">
+                    <p class="uppercase text-[10px] text-slate-400 font-semibold">My Friends</p>
+                    <div id="myFriendsList" class="space-y-1 max-h-60 overflow-y-auto custom-scroll"></div>
+                </div>
+            </div>
+
+            <!-- Account Tab -->
+            <div id="moreSectionAccount" class="hidden space-y-4">
+                <div class="bg-[#2b2d31] rounded-2xl p-3 border border-[#3f4247] space-y-2">
+                    <p class="uppercase text-[10px] text-slate-400 font-semibold">Account & Data</p>
                     <button
                         onclick="openRedeemOverlay()"
                         class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-[#313338] hover:bg-[#3f4147] text-[11px] font-semibold"
@@ -825,35 +849,145 @@
                         <i data-lucide="ticket" class="w-4 h-4"></i>
                         Redeem
                     </button>
+                    <button
+                        onclick="openResetPasswordOverlay()"
+                        class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-[#313338] hover:bg-[#3f4147] text-[11px] font-semibold"
+                    >
+                        <i data-lucide="key" class="w-4 h-4"></i>
+                        Reset Password
+                    </button>
+                    <button
+                        onclick="restartData()"
+                        class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-[#313338] hover:bg-[#3f4147] text-[11px] font-semibold"
+                    >
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                        Restart data
+                    </button>
+                    <button
+                        onclick="logout()"
+                        class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-rose-600/90 hover:bg-rose-600 text-[11px] font-semibold"
+                    >
+                        <i data-lucide="log-out" class="w-4 h-4"></i>
+                        Log out
+                    </button>
+                    <button
+                        onclick="openAdminOverlay()"
+                        id="btnOpenAdminPanel"
+                        class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-indigo-600/90 hover:bg-indigo-600 text-[11px] font-semibold hidden"
+                    >
+                        <i data-lucide="shield" class="w-4 h-4"></i>
+                        Admin Panel
+                    </button>
                 </div>
-                <button
-                    onclick="openResetPasswordOverlay()"
-                    class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-[#313338] hover:bg-[#3f4147] text-[11px] font-semibold"
-                >
-                    <i data-lucide="key" class="w-4 h-4"></i>
-                    Reset Password
-                </button>
-                <button
-                    onclick="restartData()"
-                    class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-[#313338] hover:bg-[#3f4147] text-[11px] font-semibold"
-                >
-                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
-                    Restart data
-                </button>
-                <button
-                    onclick="logout()"
-                    class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-rose-600/90 hover:bg-rose-600 text-[11px] font-semibold"
-                >
-                    <i data-lucide="log-out" class="w-4 h-4"></i>
-                    Log out
-                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Clan overlay -->
+<div id="clanOverlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[0] flex items-center justify-center hidden">
+    <div class="bg-[#1e1f22] text-white rounded-3xl w-full max-w-2xl mx-4 shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+        <div class="h-16 bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 flex items-center justify-between px-6 shrink-0">
+            <div>
+                <p class="text-[10px] uppercase tracking-[0.2em] text-purple-100/80 font-semibold">Alliance</p>
+                <p class="text-sm font-semibold">Clans & Squads</p>
+            </div>
+            <button onclick="closeClansOverlay()" class="p-1.5 rounded-full bg-black/30 hover:bg-black/50">
+                <i data-lucide="x" class="w-4 h-4 text-slate-100"></i>
+            </button>
+        </div>
+        
+        <div class="flex-1 overflow-y-auto custom-scroll p-6">
+            <!-- No Clan State -->
+            <div id="noClanView" class="space-y-6">
+                <div class="grid md:grid-cols-2 gap-4">
+                    <!-- Create Clan -->
+                    <div class="bg-[#2b2d31] rounded-2xl p-4 border border-[#3f4247] space-y-3">
+                        <h3 class="text-xs font-black uppercase text-purple-400">Create a Clan</h3>
+                        <p class="text-[10px] text-slate-400">Establish your own legacy. Cost: 5,000 Coins.</p>
+                        <input id="createClanName" type="text" placeholder="Clan Name" maxlength="20" class="w-full px-3 py-2 rounded-xl bg-[#1e1f22] border border-[#3f4247] text-xs outline-none focus:ring-2 focus:ring-purple-500">
+                        <button onclick="createClanFromUi()" class="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-[11px] font-bold transition-all">
+                            Found Clan (5,000c)
+                        </button>
+                    </div>
+                    <!-- Join Clan -->
+                    <div class="bg-[#2b2d31] rounded-2xl p-4 border border-[#3f4247] space-y-3">
+                        <h3 class="text-xs font-black uppercase text-blue-400">Find a Clan</h3>
+                        <p class="text-[10px] text-slate-400">Search for active alliances to join.</p>
+                        <div class="flex gap-2">
+                            <input id="searchClanInput" type="text" placeholder="Search clans..." class="flex-1 px-3 py-2 rounded-xl bg-[#1e1f22] border border-[#3f4247] text-xs outline-none focus:ring-2 focus:ring-blue-500">
+                            <button onclick="searchClans()" class="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-[11px] font-bold">
+                                Search
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div id="clanSearchResults" class="space-y-2"></div>
+            </div>
+
+            <!-- In Clan State -->
+            <div id="inClanView" class="hidden space-y-4">
+                <div class="flex flex-col md:flex-row gap-4">
+                    <!-- Left Column: Info & Members -->
+                    <div class="md:w-1/2 space-y-4">
+                        <div class="bg-[#2b2d31] rounded-2xl p-4 border border-[#3f4247]">
+                            <div class="flex justify-between items-start mb-2">
+                                <h2 id="viewClanName" class="text-lg font-black text-white">Clan Name</h2>
+                                <span id="viewClanTag" class="px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 text-[10px] font-bold">TAG</span>
+                            </div>
+                            <p id="viewClanDesc" class="text-[11px] text-slate-400 mb-4 italic">No description provided.</p>
+                            <div class="flex gap-4 text-[10px]">
+                                <div><span class="text-slate-500 uppercase">Level:</span> <span id="viewClanLevel" class="font-bold text-amber-400">1</span></div>
+                                <div><span class="text-slate-500 uppercase">Members:</span> <span id="viewClanMemberCount" class="font-bold text-white">0/20</span></div>
+                            </div>
+                        </div>
+                        <div class="bg-[#2b2d31] rounded-2xl p-4 border border-[#3f4247]">
+                            <h3 class="text-[10px] font-black uppercase text-slate-400 mb-3 tracking-widest">Members</h3>
+                            <div id="viewClanMemberList" class="space-y-2 max-h-60 overflow-y-auto custom-scroll"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Right Column: Chat & Quests -->
+                    <div class="md:w-1/2 space-y-4 flex flex-col">
+                        <div class="bg-[#2b2d31] rounded-2xl border border-[#3f4247] flex flex-col h-[400px]">
+                            <div class="p-3 border-b border-[#3f4247]">
+                                <h3 class="text-[10px] font-black uppercase text-slate-400 tracking-widest">Clan Chat</h3>
+                            </div>
+                            <div id="clanChatMessages" class="flex-1 overflow-y-auto p-3 space-y-2 custom-scroll text-[11px]"></div>
+                            <div class="p-3 border-t border-[#3f4247] flex gap-2">
+                                <input id="clanChatInput" type="text" placeholder="Message members..." class="flex-1 px-3 py-1.5 rounded-lg bg-[#1e1f22] border border-[#3f4247] text-[11px] outline-none">
+                                <button onclick="sendClanChatMessage()" class="p-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500">
+                                    <i data-lucide="send" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="bg-[#2b2d31] rounded-2xl p-4 border border-[#3f4247]">
+                            <h3 class="text-[10px] font-black uppercase text-slate-400 mb-3 tracking-widest">Daily Clan Quest</h3>
+                            <div id="clanQuestArea">
+                                <p class="text-[11px] text-slate-300 font-bold">Merge 50 Elements Together</p>
+                                <div class="w-full bg-[#1e1f22] h-2 rounded-full mt-2 overflow-hidden">
+                                    <div id="clanQuestProgress" class="bg-indigo-500 h-full w-[30%]"></div>
+                                </div>
+                                <p class="text-[9px] text-slate-500 mt-1">Reward: 1,000 Coins each</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex justify-between pt-2">
+                    <button onclick="leaveClanFromUi()" class="px-4 py-2 rounded-xl bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 text-[11px] font-bold transition-all border border-rose-500/20">
+                        Leave Clan
+                    </button>
+                    <button id="clanAdminBtn" onclick="openClanSettings()" class="px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-[11px] font-bold transition-all hidden">
+                        Clan Settings
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Redeem overlay -->
-<div id="redeemOverlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[116] flex items-center justify-center hidden">
+<div id="redeemOverlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[0] flex items-center justify-center hidden">
     <div class="bg-[#1e1f22] text-white rounded-3xl w-full max-w-md mx-4 shadow-2xl overflow-hidden">
         <div class="h-16 bg-gradient-to-r from-amber-500 via-indigo-500 to-emerald-500 flex items-center justify-between px-6">
             <div>
@@ -878,7 +1012,7 @@
 </div>
 
 <!-- Reset Password overlay -->
-<div id="resetPasswordOverlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[116] flex items-center justify-center hidden">
+<div id="resetPasswordOverlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[0] flex items-center justify-center hidden">
     <div class="bg-[#1e1f22] text-white rounded-3xl w-full max-w-md mx-4 shadow-2xl overflow-hidden">
         <div class="h-16 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-between px-6">
             <div>
@@ -905,7 +1039,7 @@
 </div>
 
 <!-- Admin overlay -->
-<div id="adminOverlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[117] flex items-center justify-center hidden">
+<div id="adminOverlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[0] flex items-center justify-center hidden">
     <div class="bg-[#0b1220] text-white rounded-3xl w-full max-w-2xl mx-4 shadow-2xl border border-white/10 max-h-[82vh] md:max-h-[86vh] flex flex-col overflow-hidden">
         <div class="h-16 bg-gradient-to-r from-indigo-600 via-fuchsia-600 to-amber-500 flex items-center justify-between px-6">
             <div>
@@ -1193,20 +1327,52 @@
     const DEFAULT_UPGRADES = { doubleCoins: false, autoMiner: false, speedSpawner: false };
 
     let state = {
-        // IMPORTANT: do NOT load lab progress from global localStorage here.
-        // Progress is loaded per-account in onCurrentPlayerChanged() to prevent cross-account leaks.
         inventory: [...INITIAL_ELEMENTS],
         coins: 0,
         upgrades: { ...DEFAULT_UPGRADES },
-        theme: localStorage.getItem(STORAGE_KEYS.theme) || 'light'
+        theme: localStorage.getItem(STORAGE_KEYS.theme) || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
     };
 
     let boardItems = [];
     let draggedId = null;
     let dragOffset = { x: 0, y: 0 };
     let animationFrameId = null;
-    let isOverTrashZone = false;
     let chatScreenOpen = false;
+
+    // Apply theme immediately
+    if (state.theme === 'dark') {
+        document.getElementById('bodyRoot').classList.add('theme-dark');
+        setTimeout(() => {
+            const themeBtn = document.querySelector('#sidebarControls i');
+            if (themeBtn) {
+                themeBtn.setAttribute('data-lucide', 'sun');
+                lucide.createIcons();
+            }
+        }, 100);
+    }
+
+    function toggleTheme() {
+        state.theme = state.theme === 'light' ? 'dark' : 'light';
+        localStorage.setItem(STORAGE_KEYS.theme, state.theme);
+        
+        const body = document.getElementById('bodyRoot');
+        const themeBtn = document.querySelector('#sidebarControls i');
+        if (state.theme === 'dark') {
+            body.classList.add('theme-dark');
+            if (themeBtn) {
+                themeBtn.setAttribute('data-lucide', 'sun');
+                lucide.createIcons();
+            }
+        } else {
+            body.classList.remove('theme-dark');
+            if (themeBtn) {
+                themeBtn.setAttribute('data-lucide', 'moon');
+                lucide.createIcons();
+            }
+        }
+        
+        showToast(`Switched to ${state.theme} mode`);
+    }
     let chatConversations = [];
     let activeConvId = null;
     let players = [];
@@ -1384,6 +1550,13 @@
         cachedAdminMethod = '';
 
         if (!currentPlayer) return { allowed: false, method: '' };
+
+        // role check (as requested: role === 'admin')
+        if (currentPlayer.role === 'admin' || currentPlayer.role === '@admin') {
+            cachedAdminAllowed = true;
+            cachedAdminMethod = 'role';
+            return { allowed: true, method: cachedAdminMethod };
+        }
 
         // safer path: config/adminUids/<uid> === true
         if (window._hcDb && window._hcDbFns) {
@@ -1563,6 +1736,9 @@
         resetLabStateToDefaults();
         loadLocalSaveForCurrentPlayer();
 
+        // Check for daily login reward
+        await checkDailyLogin();
+
         cleanupExpiredGrantedInventory();
         await refreshAdminUi();
         listenAnnouncements();
@@ -1578,13 +1754,7 @@
         }
     }
 
-    function setTrashIndicator(active) {
-        const el = document.getElementById('trashDropIndicator');
-        if (!el) return;
-        el.classList.toggle('hidden', !active);
-        el.style.display = active ? 'flex' : '';
-        if (active) lucide.createIcons();
-    }
+
 
     function init() {
         lucide.createIcons();
@@ -1675,7 +1845,6 @@
         localStorage.setItem(STORAGE_KEYS.currentPlayerId, id);
         document.getElementById('playerOverlay').classList.add('hidden');
         renderProfile();
-        renderLeaderboard();
         showToast('Playing as ' + displayName);
         onCurrentPlayerChanged().catch(() => {});
     }
@@ -1762,6 +1931,9 @@
             usernameLower: (username || '').toLowerCase(),
             bio: currentPlayer.bio || '',
             themeColor: currentPlayer.themeColor || '#5865F2',
+            profileTheme: currentPlayer.profileTheme || 'default',
+            nameColor: currentPlayer.nameColor || 'default',
+            customStatus: currentPlayer.customStatus || null,
             pfpUrl: currentPlayer.pfpUrl || '',
             bannerUrl: currentPlayer.bannerUrl || '',
             coins: currentPlayer.coins,
@@ -1787,6 +1959,19 @@
         } catch (_) {
             // ignore if rules prevent this
         }
+    }
+
+    function renderInventory() {
+        const list = document.getElementById('inventoryList');
+        list.innerHTML = '';
+        state.inventory.forEach(item => {
+            const btn = document.createElement('button');
+            btn.className = `w-full flex items-center gap-4 p-4 border-2 rounded-2xl text-left rarity-container rarity-${item.rarity}`;
+            btn.innerHTML = `${getCustomHTML(item)}<div class="flex flex-col z-10"><span class="font-black text-[11px] uppercase">${item.name}</span><span class="text-[8px] font-bold opacity-40 uppercase">${item.rarity}</span></div>`;
+            btn.onclick = () => spawnItem(item);
+            list.appendChild(btn);
+        });
+        updateLibrary();
     }
 
     function getCustomHTML(item) {
@@ -1838,18 +2023,20 @@
 
     function startDrag(id, e) {
         draggedId = id;
-        isOverTrashZone = false;
-        setTrashIndicator(false);
         const it = boardItems.find(i => i.id === id);
         const cx = e.touches ? e.touches[0].clientX : e.clientX;
         const cy = e.touches ? e.touches[0].clientY : e.clientY;
         dragOffset = { x: cx - it.x, y: cy - it.y };
         const el = document.getElementById(`item-${id}`);
-        if (el && e && typeof e.pointerId === 'number' && el.setPointerCapture) {
-            try { el.setPointerCapture(e.pointerId); } catch (_) {}
+        if (el) {
+            // Move to end of parent to ensure it's on top visually (DOM order)
+            el.parentElement.appendChild(el);
+            if (e && typeof e.pointerId === 'number' && el.setPointerCapture) {
+                try { el.setPointerCapture(e.pointerId); } catch (_) {}
+            }
+            el.style.zIndex = "0";
+            el.classList.add('dragging');
         }
-        el.style.zIndex = "100";
-        el.classList.add('dragging');
     }
 
     function handleMove(e) {
@@ -1868,16 +2055,6 @@
             it.y = cy - dragOffset.y;
             const el = document.getElementById(`item-${draggedId}`);
             if (el) el.style.transform = `translate3d(${it.x}px, ${it.y}px, 0)`;
-
-            const sidebar = document.getElementById('sidebar');
-            if (sidebar) {
-                const r = sidebar.getBoundingClientRect();
-                const over = cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom;
-                if (over !== isOverTrashZone) {
-                    isOverTrashZone = over;
-                    setTrashIndicator(over);
-                }
-            }
         });
     }
 
@@ -1885,31 +2062,26 @@
         if (!draggedId) return;
         const el = document.getElementById(`item-${draggedId}`);
         if (el) el.classList.remove('dragging');
-        setTrashIndicator(false);
 
         const it = boardItems.find(i => i.id === draggedId);
         if (!it) {
             draggedId = null;
-            isOverTrashZone = false;
             return;
         }
-        if (isOverTrashZone) {
-            boardItems = boardItems.filter(i => i.id !== draggedId);
-            if (el) el.remove();
-            if (!boardItems.length) document.getElementById('emptyState').classList.remove('hidden');
-            showToast("Deleted");
-            draggedId = null;
-            isOverTrashZone = false;
-            return;
-        }
+
         const target = boardItems.find(o => o.id !== draggedId && Math.hypot(it.x-o.x, it.y-o.y) < 100);
         
         if (target) {
             const key = [it.name, target.name].sort().join('+');
-            const res = RECIPES[key];
-            
-            if (res) {
-                boardItems = boardItems.filter(i => i.id !== draggedId && i.id !== target.id);
+        const res = RECIPES[key];
+        
+        if (res) {
+            // Clan Quest Progress
+            if (currentPlayer && currentPlayer.clanId) {
+                incrementClanQuestProgress(1);
+            }
+
+            boardItems = boardItems.filter(i => i.id !== draggedId && i.id !== target.id);
                 document.getElementById(`item-${draggedId}`).remove();
                 document.getElementById(`item-${target.id}`).remove();
                 
@@ -1927,20 +2099,34 @@
             }
         }
         draggedId = null;
-        isOverTrashZone = false;
     }
 
-    function renderInventory() {
-        const list = document.getElementById('inventoryList');
-        list.innerHTML = '';
-        state.inventory.forEach(item => {
-            const btn = document.createElement('button');
-            btn.className = `w-full flex items-center gap-4 p-4 border-2 rounded-2xl text-left rarity-container rarity-${item.rarity}`;
-            btn.innerHTML = `${getCustomHTML(item)}<div class="flex flex-col z-10"><span class="font-black text-[11px] uppercase">${item.name}</span><span class="text-[8px] font-bold opacity-40 uppercase">${item.rarity}</span></div>`;
-            btn.onclick = () => spawnItem(item);
-            list.appendChild(btn);
+    function spawnItem(item) {
+        const board = document.getElementById('board');
+        const boardRect = board.getBoundingClientRect();
+        const x = 40 + Math.random() * (boardRect.width - 200);
+        const y = 40 + Math.random() * (boardRect.height - 150);
+        const newItem = { ...item, id: Date.now(), x, y };
+        boardItems.push(newItem);
+        board.appendChild(createEl(newItem));
+        document.getElementById('welcomePlaceholder').classList.add('hidden');
+    }
+
+    function spawnAllOneByOne() {
+        state.inventory.forEach((item, i) => {
+            setTimeout(() => spawnItem(item), i * 300);
         });
-        updateLibrary();
+        showToast("Placed All Elements!");
+    }
+
+    function clearBoard() {
+        boardItems.forEach(it => {
+            const el = document.getElementById(`item-${it.id}`);
+            if (el) el.remove();
+        });
+        boardItems = [];
+        document.getElementById('welcomePlaceholder').classList.remove('hidden');
+        showToast("Board Cleared");
     }
 
     function updateLibrary() {
@@ -1954,34 +2140,6 @@
             div.innerHTML = `<div class="flex items-center gap-3"><span class="text-2xl">${unlocked ? res.emoji : '❓'}</span><div><span class="text-[10px] font-black uppercase">${unlocked ? res.name : 'Unknown'}</span><p class="text-[8px] font-bold text-slate-400">${key}</p></div></div>`;
             list.appendChild(div);
         });
-    }
-
-    function spawnItem(item) {
-        const board = document.getElementById('board');
-        const boardRect = board.getBoundingClientRect();
-        const x = 40 + Math.random() * (boardRect.width - 200);
-        const y = 40 + Math.random() * (boardRect.height - 150);
-        const newItem = { ...item, id: Date.now(), x, y };
-        boardItems.push(newItem);
-        board.appendChild(createEl(newItem));
-        document.getElementById('emptyState').classList.add('hidden');
-    }
-
-    function spawnAllOneByOne() {
-        state.inventory.forEach((item, i) => {
-            setTimeout(() => spawnItem(item), i * (state.upgrades.speedSpawner ? 50 : 200));
-        });
-        showToast("Spawned All Elements!");
-    }
-
-    function clearBoard() {
-        boardItems.forEach(it => {
-            const el = document.getElementById(`item-${it.id}`);
-            if (el) el.remove();
-        });
-        boardItems = [];
-        document.getElementById('emptyState').classList.remove('hidden');
-        showToast("Board Cleared");
     }
 
     function restartData() {
@@ -2022,11 +2180,13 @@
     }
 
     function showMiniGameScreen(show) {
-        const boardEl = document.getElementById('board');
+        const welcomeEl = document.getElementById('welcomePlaceholder');
         const miniEl = document.getElementById('miniGameRight');
-        if (!boardEl || !miniEl) return;
+        if (!miniEl) return;
         miniEl.classList.toggle('hidden', !show);
-        boardEl.classList.toggle('hidden', !!show || chatScreenOpen);
+        if (welcomeEl) {
+            welcomeEl.classList.toggle('hidden', !!show || chatScreenOpen);
+        }
     }
 
     function closeMiniGameScreen() {
@@ -2035,12 +2195,14 @@
 
     function showChatScreen(show) {
         chatScreenOpen = !!show;
-        const boardEl = document.getElementById('board');
+        const welcomeEl = document.getElementById('welcomePlaceholder');
         const chatEl = document.getElementById('chatRight');
         const miniGameEl = document.getElementById('miniGameRight');
         const tabChat = document.getElementById('tabChat');
-        if (boardEl && chatEl) {
-            boardEl.classList.toggle('hidden', chatScreenOpen || (miniGameEl && !miniGameEl.classList.contains('hidden')));
+        if (chatEl) {
+            if (welcomeEl) {
+                welcomeEl.classList.toggle('hidden', chatScreenOpen || (miniGameEl && !miniGameEl.classList.contains('hidden')));
+            }
             chatEl.classList.toggle('hidden', !chatScreenOpen);
         }
         if (tabChat) {
@@ -2079,6 +2241,7 @@
     function updateUI() {
         const coinEl = document.getElementById('coinBalance');
         if (coinEl) coinEl.innerText = state.coins.toLocaleString();
+        renderInventory(); // Ensure inventory list is updated immediately
         save();
         syncPlayerStats();
     }
@@ -2231,12 +2394,45 @@
                 accent.style.background = themeColor;
             }
         }
-        if (dnEl) dnEl.textContent = displayName;
+        if (dnEl) {
+            dnEl.textContent = displayName;
+            dnEl.style.color = '';
+            dnEl.style.backgroundImage = '';
+            dnEl.classList.remove('name-effect-animated', 'name-effect-gradient');
+            
+            const effect = p.nameEffect || 'solid';
+            const color1 = p.nameColor1 || '#ffffff';
+            const color2 = p.nameColor2 || '#5865f2';
+
+            if (effect === 'animated') {
+                dnEl.classList.add('name-effect-animated');
+            } else if (effect === 'gradient') {
+                dnEl.classList.add('name-effect-gradient');
+                dnEl.style.setProperty('--gradient-start', color1);
+                dnEl.style.setProperty('--gradient-end', color2);
+            } else {
+                dnEl.style.color = color1;
+            }
+        }
         if (unEl) unEl.textContent = '@' + username;
         if (themeLabel) themeLabel.textContent = 'Theme: ' + themeColor;
         if (bioEl) bioEl.textContent = bio;
         if (coinsEl) coinsEl.textContent = coins.toLocaleString();
         if (ptEl) ptEl.textContent = `${mins}m`;
+
+        // Custom Status Bubble
+        const statusBubble = document.getElementById('profileCardStatusBubble');
+        const statusEmoji = document.getElementById('profileCardStatusEmoji');
+        const statusText = document.getElementById('profileCardStatusText');
+        if (statusBubble && statusEmoji && statusText) {
+            if (p.customStatus && (p.customStatus.emoji || p.customStatus.text)) {
+                statusBubble.classList.remove('hidden');
+                statusEmoji.textContent = p.customStatus.emoji || '💭';
+                statusText.textContent = p.customStatus.text || '';
+            } else {
+                statusBubble.classList.add('hidden');
+            }
+        }
 
         if (badgesEl) {
             const role = (p.role || '').toLowerCase();
@@ -2291,10 +2487,31 @@
             document.getElementById('profileEditBioInput').value = p.bio || '';
             document.getElementById('profileEditThemeInput').value = themeColor;
             document.getElementById('profileEditError').textContent = '';
+            
+            // Name Color & Effects
+            const effectSelect = document.getElementById('profileEditNameEffect');
+            const color1Input = document.getElementById('profileEditNameColor1');
+            const color2Input = document.getElementById('profileEditNameColor2');
+            
+            if (effectSelect) effectSelect.value = p.nameEffect || 'solid';
+            if (color1Input) color1Input.value = p.nameColor1 || '#ffffff';
+            if (color2Input) {
+                color2Input.value = p.nameColor2 || '#5865f2';
+                color2Input.classList.toggle('hidden', (p.nameEffect || 'solid') !== 'gradient');
+            }
+            
+            // Custom Status
+            const statusEmojiSelect = document.getElementById('profileEditStatusEmoji');
+            const statusTextInput = document.getElementById('profileEditStatusTextInput');
+            if (statusEmojiSelect) statusEmojiSelect.value = (p.customStatus && p.customStatus.emoji) || '';
+            if (statusTextInput) statusTextInput.value = (p.customStatus && p.customStatus.text) || '';
+
             const avatarFile = document.getElementById('profileEditAvatarFile');
             const bannerFile = document.getElementById('profileEditBannerFile');
             if (avatarFile) avatarFile.value = '';
             if (bannerFile) bannerFile.value = '';
+            
+            previewNameColor();
         }
     }
 
@@ -2316,68 +2533,151 @@
         const avatarFileInput = document.getElementById('profileEditAvatarFile');
         const bannerFileInput = document.getElementById('profileEditBannerFile');
         const errorEl = document.getElementById('profileEditError');
+        const saveBtn = document.querySelector('button[onclick="saveProfileCustomization()"]');
+
         if (!dnInput || !unInput || !bioInput || !themeInput || !errorEl) return;
 
-        const displayName = (dnInput.value || '').trim() || currentPlayer.displayName || currentPlayer.name || 'Unknown';
-        const rawUsername = (unInput.value || '').trim();
-        let username = rawUsername;
-        if (!username) {
-            errorEl.textContent = 'Username is required.';
-            return;
+        // Visual feedback - start loading
+        if (saveBtn) {
+            saveBtn.disabled = true;
+            const originalText = saveBtn.textContent;
+            saveBtn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin mx-auto"></i>';
+            lucide.createIcons();
         }
-        const bio = (bioInput.value || '').trim();
-        let themeColor = (themeInput.value || '').trim() || '#5865F2';
-        if (!/^#?[0-9a-fA-F]{6}$/.test(themeColor)) {
-            errorEl.textContent = 'Theme color must be a hex like #5865F2';
-            return;
-        }
-        if (!themeColor.startsWith('#')) themeColor = '#' + themeColor;
-        let newAvatarUrl = currentPlayer.pfpUrl || '';
-        let newBannerUrl = currentPlayer.bannerUrl || '';
-        if (avatarFileInput && avatarFileInput.files && avatarFileInput.files[0]) {
-            newAvatarUrl = await readFileAsDataUrl(avatarFileInput.files[0]);
-        }
-        if (bannerFileInput && bannerFileInput.files && bannerFileInput.files[0]) {
-            newBannerUrl = await readFileAsDataUrl(bannerFileInput.files[0]);
-        }
+        errorEl.textContent = '';
 
-        // check username uniqueness in Firestore
-        if (window._hcDb && window._hcFirestoreFns) {
-            const lower = username.toLowerCase();
-            const { getDocs, collection, query, where, limit } = window._hcFirestoreFns;
-            const db = window._hcDb;
-            try {
-                const q = query(
-                    collection(db, "players"),
-                    where("usernameLower", "==", lower),
-                    limit(1)
-                );
-                const snap = await getDocs(q);
-                if (!snap.empty) {
-                    const docSnap = snap.docs[0];
-                    if (docSnap.id !== currentPlayer.id) {
-                        errorEl.textContent = 'That username is already taken.';
-                        return;
+        try {
+            const displayName = (dnInput.value || '').trim() || currentPlayer.displayName || currentPlayer.name || 'Unknown';
+            const rawUsername = (unInput.value || '').trim();
+            let username = rawUsername;
+            if (!username) {
+                throw new Error('Username is required.');
+            }
+
+            const bio = (bioInput.value || '').trim();
+            let themeColor = (themeInput.value || '').trim() || '#5865F2';
+            
+            // Name Color & Effects from Edit UI
+            const nameEffect = document.getElementById('profileEditNameEffect')?.value || 'solid';
+            const nameColor1 = document.getElementById('profileEditNameColor1')?.value || '#ffffff';
+            const nameColor2 = document.getElementById('profileEditNameColor2')?.value || '#5865f2';
+
+            // Custom Status from Edit UI
+            const statusEmoji = document.getElementById('profileEditStatusEmoji')?.value || '';
+            const statusText = document.getElementById('profileEditStatusTextInput')?.value.trim() || '';
+
+            if (!/^#?[0-9a-fA-F]{6}$/.test(themeColor)) {
+                throw new Error('Theme color must be a hex like #5865F2');
+            }
+            if (!themeColor.startsWith('#')) themeColor = '#' + themeColor;
+
+            // Check username uniqueness if changed
+            if (username.toLowerCase() !== (currentPlayer.username || '').toLowerCase()) {
+                if (window._hcDb && window._hcFirestoreFns) {
+                    const lower = username.toLowerCase();
+                    const { getDocs, collection, query, where, limit } = window._hcFirestoreFns;
+                    const db = window._hcDb;
+                    const q = query(
+                        collection(db, "players"),
+                        where("usernameLower", "==", lower),
+                        limit(1)
+                    );
+                    const snap = await getDocs(q);
+                    if (!snap.empty) {
+                        const docSnap = snap.docs[0];
+                        if (docSnap.id !== currentPlayer.id) {
+                            throw new Error('That username is already taken.');
+                        }
                     }
                 }
-            } catch (e) {
-                console.warn(e);
+            }
+
+            let newAvatarUrl = currentPlayer.pfpUrl || '';
+            let newBannerUrl = currentPlayer.bannerUrl || '';
+            if (avatarFileInput && avatarFileInput.files && avatarFileInput.files[0]) {
+                newAvatarUrl = await readFileAsDataUrl(avatarFileInput.files[0]);
+            }
+            if (bannerFileInput && bannerFileInput.files && bannerFileInput.files[0]) {
+                newBannerUrl = await readFileAsDataUrl(bannerFileInput.files[0]);
+            }
+
+            // Update local state
+            currentPlayer.displayName = displayName;
+            currentPlayer.username = username;
+            currentPlayer.usernameLower = username.toLowerCase();
+            currentPlayer.bio = bio;
+            currentPlayer.themeColor = themeColor;
+            currentPlayer.pfpUrl = newAvatarUrl;
+            currentPlayer.bannerUrl = newBannerUrl;
+            currentPlayer.nameEffect = nameEffect;
+            currentPlayer.nameColor1 = nameColor1;
+            currentPlayer.nameColor2 = nameColor2;
+
+            if (statusText || statusEmoji) {
+                currentPlayer.customStatus = { emoji: statusEmoji, text: statusText };
+            } else {
+                delete currentPlayer.customStatus;
+            }
+
+            // Persistence
+            await sendProfileToBackend();
+            savePlayers();
+            renderProfile();
+            loadProfileOverlay(false);
+            showToast('Profile updated successfully!');
+        } catch (e) {
+            console.error('Save profile error:', e);
+            errorEl.textContent = e.message || 'An error occurred while saving.';
+            showToast('Failed to save profile');
+        } finally {
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Save';
+            }
+        }
+    }
+
+    function previewNameColor() {
+        const effect = document.getElementById('profileEditNameEffect')?.value || 'solid';
+        const color1 = document.getElementById('profileEditNameColor1')?.value || '#ffffff';
+        const color2Input = document.getElementById('profileEditNameColor2');
+        const color2 = color2Input?.value || '#5865f2';
+        const previewEl = document.getElementById('profileCardDisplayName');
+        const contrastWarning = document.getElementById('contrastWarning');
+
+        if (color2Input) color2Input.classList.toggle('hidden', effect !== 'gradient');
+
+        if (previewEl) {
+            previewEl.style.color = '';
+            previewEl.style.backgroundImage = '';
+            previewEl.classList.remove('name-effect-animated', 'name-effect-gradient');
+
+            if (effect === 'animated') {
+                previewEl.classList.add('name-effect-animated');
+            } else if (effect === 'gradient') {
+                previewEl.classList.add('name-effect-gradient');
+                previewEl.style.setProperty('--gradient-start', color1);
+                previewEl.style.setProperty('--gradient-end', color2);
+            } else {
+                previewEl.style.color = color1;
             }
         }
 
-        currentPlayer.displayName = displayName;
-        currentPlayer.username = username;
-        currentPlayer.usernameLower = username.toLowerCase();
-        currentPlayer.bio = bio;
-        currentPlayer.themeColor = themeColor;
-        currentPlayer.pfpUrl = newAvatarUrl;
-        currentPlayer.bannerUrl = newBannerUrl;
-
-        await sendProfileToBackend().catch(() => {});
-        savePlayers();
-        renderProfile();
-        loadProfileOverlay(false);
-        showToast('Profile updated');
+        // Accessibility contrast validation (simplified)
+        if (contrastWarning) {
+            const isDark = (color) => {
+                const hex = color.replace('#', '');
+                const r = parseInt(hex.substr(0, 2), 16);
+                const g = parseInt(hex.substr(2, 2), 16);
+                const b = parseInt(hex.substr(4, 2), 16);
+                const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+                return brightness < 128;
+            };
+            
+            // Profile background is dark (#1e1f22), so we need light text
+            const lowContrast = isDark(color1) || (effect === 'gradient' && isDark(color2));
+            contrastWarning.classList.toggle('hidden', !lowContrast);
+        }
     }
 
     async function searchByUsername() {
@@ -2412,9 +2712,15 @@
                 const row = document.createElement('div');
                 row.className = 'flex items-center justify-between px-2 py-1 rounded-lg bg-[#1e1f22]';
                 row.innerHTML = `
-                    <div class="flex flex-col">
-                        <span class="text-[11px] font-semibold text-slate-100">${p.displayName || p.name}</span>
-                        <span class="text-[10px] text-slate-400">@${p.username || (p.handle || '').replace('@','')}</span>
+                    <div class="flex items-center gap-3">
+                        <div class="h-8 w-8 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-sm relative">
+                            ${p.pfpUrl ? `<img src="${p.pfpUrl}" class="h-full w-full object-cover rounded-full">` : (p.displayName || p.name || '?').slice(0, 2).toUpperCase()}
+                            ${p.customStatus && p.customStatus.emoji ? `<div class="absolute -bottom-1 -right-1 w-4 h-4 bg-[#23a55a] border-2 border-[#1e1f22] rounded-full flex items-center justify-center text-[8px]">${p.customStatus.emoji}</div>` : ''}
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="font-bold text-slate-100">${renderPlayerName(p)}</span>
+                            <span class="text-[10px] text-slate-400">@${p.username || p.name}</span>
+                        </div>
                     </div>
                     <div class="text-right">
                         <span class="block text-[11px] font-bold text-amber-400">${(p.coins || 0).toLocaleString()}c</span>
@@ -2427,6 +2733,27 @@
             console.warn(e);
             renderServerError(container, e, true);
         }
+    }
+
+    function renderPlayerName(player) {
+        const displayName = player.displayName || player.name || 'Unknown';
+        const effect = player.nameEffect || 'solid';
+        const color1 = player.nameColor1 || '#ffffff';
+        const color2 = player.nameColor2 || '#5865f2';
+        
+        let style = '';
+        let classes = '';
+        
+        if (effect === 'animated') {
+            classes = 'name-effect-animated';
+        } else if (effect === 'gradient') {
+            classes = 'name-effect-gradient';
+            style = `--gradient-start: ${color1}; --gradient-end: ${color2};`;
+        } else {
+            style = `color: ${color1};`;
+        }
+        
+        return `<span class="${classes}" style="${style}">${escapeHtml(displayName)}</span>`;
     }
 
     function readFileAsDataUrl(file) {
@@ -2497,40 +2824,48 @@
         await loadChatMessages(convId);
     }
 
+    let chatConversationsUnsub = null;
+    let chatMessagesUnsub = null;
+
     async function loadChatConversations() {
         if (!window._hcDb || !window._hcDbFns || !currentPlayer || !currentPlayer.id) return;
-        const { ref, get } = window._hcDbFns;
-        const snap = await get(ref(window._hcDb, `userConversations/${currentPlayer.id}`));
-        chatConversations = [];
-        const list = document.getElementById('chatConversationList');
-        if (!list) return;
-        list.innerHTML = '';
-        if (!snap.exists()) return;
-        const val = snap.val() || {};
-        chatConversations = Object.values(val).sort((a, b) => (b.lastAt || 0) - (a.lastAt || 0));
-        chatConversations.forEach(c => {
-            const btn = document.createElement('button');
-            btn.className = 'w-full text-left px-2 py-1.5 rounded-lg hover:bg-slate-100';
-            const name = c.name || 'Chat';
-            const handle = c.otherHandle || '';
-            const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'HC';
-            const avatar = c.otherAvatar || '';
-            const avatarHtml = avatar
-                ? `<img src="${escapeHtml(avatar)}" class="h-7 w-7 rounded-full object-cover border border-slate-200" />`
-                : `<div class="h-7 w-7 rounded-full bg-slate-800 text-white flex items-center justify-center text-[10px] font-bold">
-                    ${escapeHtml(initials)}
-                   </div>`;
-            btn.innerHTML = `<div class="flex items-center gap-2">
-                ${avatarHtml}
-                <div class="flex flex-col min-w-0">
-                    <span class="text-[11px] font-semibold truncate">${escapeHtml(name)}</span>
-                    <span class="text-[10px] text-slate-500 truncate">${escapeHtml(handle || c.lastMessage || '')}</span>
-                </div>
-            </div>`;
-            btn.onclick = () => { activeConvId = c.convId; loadChatMessages(c.convId); };
-            list.appendChild(btn);
+        const { ref, onValue, off } = window._hcDbFns;
+        const db = window._hcDb;
+        const convRef = ref(db, `userConversations/${currentPlayer.id}`);
+        
+        if (chatConversationsUnsub) off(convRef);
+        
+        chatConversationsUnsub = onValue(convRef, async (snap) => {
+            chatConversations = [];
+            const list = document.getElementById('chatConversationList');
+            if (!list) return;
+            list.innerHTML = '';
+            if (!snap.exists()) return;
+            const val = snap.val() || {};
+            chatConversations = Object.values(val).sort((a, b) => (b.lastAt || 0) - (a.lastAt || 0));
+            chatConversations.forEach(c => {
+                const btn = document.createElement('button');
+                btn.className = 'w-full text-left px-2 py-1.5 rounded-lg hover:bg-slate-100 ' + (activeConvId === c.convId ? 'bg-slate-100' : '');
+                const name = c.name || 'Chat';
+                const handle = c.otherHandle || '';
+                const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'HC';
+                const avatar = c.otherAvatar || '';
+                const avatarHtml = avatar
+                    ? `<img src="${escapeHtml(avatar)}" class="h-7 w-7 rounded-full object-cover border border-slate-200" />`
+                    : `<div class="h-7 w-7 rounded-full bg-slate-800 text-white flex items-center justify-center text-[10px] font-bold">
+                        ${escapeHtml(initials)}
+                       </div>`;
+                btn.innerHTML = `<div class="flex items-center gap-2">
+                    ${avatarHtml}
+                    <div class="flex flex-col min-w-0">
+                        <span class="text-[11px] font-semibold truncate">${escapeHtml(name)}</span>
+                        <span class="text-[10px] text-slate-500 truncate">${escapeHtml(handle || c.lastMessage || '')}</span>
+                    </div>
+                </div>`;
+                btn.onclick = () => { activeConvId = c.convId; loadChatMessages(c.convId); };
+                list.appendChild(btn);
+            });
         });
-        // Also load online users
         await loadChatOnlineUsers();
     }
 
@@ -2581,67 +2916,72 @@
 
     async function loadChatMessages(convId) {
         if (!window._hcDb || !window._hcDbFns) return;
-        const { ref, get } = window._hcDbFns;
-        const snap = await get(ref(window._hcDb, `messages/${convId}`));
-        const msgsEl = document.getElementById('chatMessages');
-        if (!msgsEl) return;
-        msgsEl.innerHTML = '';
-        if (!snap.exists()) return;
-        const val = snap.val() || {};
-        const msgs = Object.entries(val).map(([id, m]) => ({ id, ...m }))
-            .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
-        msgs.forEach(m => {
-            const mine = currentPlayer && m.from === currentPlayer.id;
-            const row = document.createElement('div');
-            row.className = 'flex items-end gap-2 mb-3 ' + (mine ? 'justify-end' : 'justify-start');
-            
-            // Get sender info
-            const senderName = mine ? (currentPlayer.displayName || currentPlayer.name || 'You') : (m.fromName || 'User');
-            const senderPfp = mine ? (currentPlayer.pfpUrl || '') : (m.fromPfp || '');
-            const initials = senderName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'U';
-            
-            // Create avatar HTML
-            const avatarHtml = senderPfp
-                ? `<img src="${escapeHtml(senderPfp)}" class="h-8 w-8 rounded-full object-cover border border-slate-200 flex-shrink-0" />`
-                : `<div class="h-8 w-8 rounded-full ${mine ? 'bg-indigo-500' : 'bg-slate-500'} text-white flex items-center justify-center text-[10px] font-bold flex-shrink-0">${escapeHtml(initials)}</div>`;
-            
-            const bubble = document.createElement('div');
-            bubble.className = 'max-w-[70%] px-3 py-2 rounded-2xl text-[12px] ' +
-                (mine ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-slate-100 text-slate-800 rounded-bl-none');
+        const { ref, onValue, off, query, limitToLast } = window._hcDbFns;
+        
+        if (chatMessagesUnsub) off(ref(window._hcDb, `messages/${activeConvId}`));
+        
+        const msgsRef = query(ref(window._hcDb, `messages/${convId}`), limitToLast(50));
+        chatMessagesUnsub = onValue(msgsRef, (snap) => {
+            const msgsEl = document.getElementById('chatMessages');
+            if (!msgsEl) return;
+            msgsEl.innerHTML = '';
+            if (!snap.exists()) return;
+            const val = snap.val() || {};
+            const msgs = Object.entries(val).map(([id, m]) => ({ id, ...m }))
+                .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+            msgs.forEach(m => {
+                const mine = currentPlayer && m.from === currentPlayer.id;
+                const row = document.createElement('div');
+                row.className = 'flex items-end gap-2 mb-3 ' + (mine ? 'justify-end' : 'justify-start');
+                
+                // Get sender info
+                const senderName = mine ? (currentPlayer.displayName || currentPlayer.name || 'You') : (m.fromName || 'User');
+                const senderPfp = mine ? (currentPlayer.pfpUrl || '') : (m.fromPfp || '');
+                const initials = senderName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'U';
+                
+                // Create avatar HTML
+                const avatarHtml = senderPfp
+                    ? `<img src="${escapeHtml(senderPfp)}" class="h-8 w-8 rounded-full object-cover border border-slate-200 flex-shrink-0" />`
+                    : `<div class="h-8 w-8 rounded-full ${mine ? 'bg-indigo-500' : 'bg-slate-500'} text-white flex items-center justify-center text-[10px] font-bold flex-shrink-0">${escapeHtml(initials)}</div>`;
+                
+                const bubble = document.createElement('div');
+                bubble.className = 'max-w-[70%] px-3 py-2 rounded-2xl text-[12px] ' +
+                    (mine ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-slate-100 text-slate-800 rounded-bl-none');
 
-            if (m.type === 'image' && m.dataUrl) {
-                bubble.innerHTML = `<img src="${escapeHtml(m.dataUrl)}" class="max-w-full max-h-48 rounded-lg block mb-1">`;
-                if (m.text) {
-                    bubble.innerHTML += `<div>${escapeHtml(m.text)}</div>`;
+                if (m.type === 'image' && m.dataUrl) {
+                    bubble.innerHTML = `<img src="${escapeHtml(m.dataUrl)}" class="max-w-full max-h-48 rounded-lg block mb-1">`;
+                    if (m.text) {
+                        bubble.innerHTML += `<div>${escapeHtml(m.text)}</div>`;
+                    }
+                } else if (m.type === 'audio' && m.dataUrl) {
+                    bubble.innerHTML = `<audio controls class="w-full mb-1"><source src="${escapeHtml(m.dataUrl)}"></audio>`;
+                    if (m.text) {
+                        bubble.innerHTML += `<div>${escapeHtml(m.text)}</div>`;
+                    }
+                } else {
+                    bubble.textContent = m.text || '';
                 }
-            } else if (m.type === 'audio' && m.dataUrl) {
-                bubble.innerHTML = `<audio controls class="w-full mb-1"><source src="${escapeHtml(m.dataUrl)}"></audio>`;
-                if (m.text) {
-                    bubble.innerHTML += `<div>${escapeHtml(m.text)}</div>`;
+                
+                // Add sender name above bubble for others' messages
+                if (!mine) {
+                    const nameEl = document.createElement('div');
+                    nameEl.className = 'text-[10px] text-slate-500 mb-1 ml-1';
+                    nameEl.textContent = senderName;
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'flex flex-col';
+                    wrapper.appendChild(nameEl);
+                    wrapper.appendChild(bubble);
+                    row.appendChild(avatarHtml);
+                    row.appendChild(wrapper);
+                } else {
+                    row.appendChild(bubble);
+                    row.appendChild(avatarHtml);
                 }
-            } else {
-                bubble.textContent = m.text || '';
-            }
-            
-            // Add sender name above bubble for others' messages
-            if (!mine) {
-                const nameEl = document.createElement('div');
-                nameEl.className = 'text-[10px] text-slate-500 mb-1 ml-1';
-                nameEl.textContent = senderName;
-                const wrapper = document.createElement('div');
-                wrapper.className = 'flex flex-col';
-                wrapper.appendChild(nameEl);
-                wrapper.appendChild(bubble);
-                row.appendChild(avatarHtml);
-                row.appendChild(wrapper);
-            } else {
-                row.appendChild(bubble);
-                row.appendChild(avatarHtml);
-            }
-            
-            msgsEl.appendChild(row);
+                
+                msgsEl.appendChild(row);
+            });
+            msgsEl.scrollTop = msgsEl.scrollHeight;
         });
-        msgsEl.scrollTop = msgsEl.scrollHeight;
     }
 
     async function sendChatMessage() {
@@ -2650,6 +2990,8 @@
         const input = document.getElementById('chatInput');
         const imgInput = document.getElementById('chatImageInput');
         const audioInput = document.getElementById('chatAudioInput');
+        const progressEl = document.getElementById('chatUploadProgress');
+        const progressBar = document.getElementById('chatUploadProgressBar');
         const text = (input?.value || '').trim();
 
         let type = 'text';
@@ -2658,51 +3000,64 @@
         function fileToDataUrl(file) {
             return new Promise((resolve, reject) => {
                 const r = new FileReader();
+                r.onprogress = (e) => {
+                    if (e.lengthComputable) {
+                        const pct = (e.loaded / e.total) * 100;
+                        if (progressBar) progressBar.style.width = pct + '%';
+                    }
+                };
                 r.onload = () => resolve(r.result);
-                r.onerror = reject;
+                r.onerror = () => reject(new Error('File read failed'));
                 r.readAsDataURL(file);
             });
         }
 
-        if (imgInput?.files?.[0]) {
-            type = 'image';
-            dataUrl = await fileToDataUrl(imgInput.files[0]);
-        } else if (audioInput?.files?.[0]) {
-            type = 'audio';
-            dataUrl = await fileToDataUrl(audioInput.files[0]);
-        } else if (!text) {
-            return;
-        }
+        try {
+            if (imgInput?.files?.[0] || audioInput?.files?.[0]) {
+                if (progressEl) progressEl.classList.remove('hidden');
+                if (progressBar) progressBar.style.width = '0%';
+                
+                const file = imgInput?.files?.[0] || audioInput?.files?.[0];
+                type = imgInput?.files?.[0] ? 'image' : 'audio';
+                dataUrl = await fileToDataUrl(file);
+            } else if (!text) {
+                return;
+            }
 
-        const msgRef = push(ref(window._hcDb, `messages/${activeConvId}`));
-        const now = Date.now();
-        await set(msgRef, {
-            from: currentPlayer.id,
-            fromName: currentPlayer.displayName || currentPlayer.name || '',
-            fromUsername: currentPlayer.username || '',
-            fromPfp: currentPlayer.pfpUrl || '',
-            text,
-            type,
-            dataUrl,
-            createdAt: now
-        });
-        await update(ref(window._hcDb, `userConversations/${currentPlayer.id}/${activeConvId}`), {
-            lastMessage: text || (type === 'image' ? '[image]' : type === 'audio' ? '[audio]' : ''),
-            lastAt: now
-        });
-        // also bump receiver's convo meta if present
-        const conv = chatConversations.find(c => c.convId === activeConvId);
-        if (conv && conv.otherUid) {
-            await update(ref(window._hcDb, `userConversations/${conv.otherUid}/${activeConvId}`), {
-                lastMessage: text || (type === 'image' ? '[image]' : type === 'audio' ? '[audio]' : ''),
-                lastAt: now
-            }).catch(() => {});
+            const msgRef = push(ref(window._hcDb, `messages/${activeConvId}`));
+            const now = Date.now();
+            await set(msgRef, {
+                from: currentPlayer.id,
+                fromName: currentPlayer.displayName || currentPlayer.name || '',
+                fromUsername: currentPlayer.username || '',
+                fromPfp: currentPlayer.pfpUrl || '',
+                text,
+                type,
+                dataUrl,
+                createdAt: now
+            });
+            
+            const updates = {};
+            const lastMsg = text || (type === 'image' ? '[image]' : '[audio]');
+            updates[`userConversations/${currentPlayer.id}/${activeConvId}/lastMessage`] = lastMsg;
+            updates[`userConversations/${currentPlayer.id}/${activeConvId}/lastAt`] = now;
+            
+            const conv = chatConversations.find(c => c.convId === activeConvId);
+            if (conv && conv.otherUid) {
+                updates[`userConversations/${conv.otherUid}/${activeConvId}/lastMessage`] = lastMsg;
+                updates[`userConversations/${conv.otherUid}/${activeConvId}/lastAt`] = now;
+            }
+            await update(ref(window._hcDb), updates);
+
+            if (input) input.value = '';
+            if (imgInput) imgInput.value = '';
+            if (audioInput) audioInput.value = '';
+        } catch (e) {
+            console.warn(e);
+            showToast('Failed to send message');
+        } finally {
+            if (progressEl) progressEl.classList.add('hidden');
         }
-        if (input) input.value = '';
-        if (imgInput) imgInput.value = '';
-        if (audioInput) audioInput.value = '';
-        await loadChatMessages(activeConvId);
-        await loadChatConversations();
     }
 
     async function startDmFromUsername() {
@@ -3963,26 +4318,45 @@
                     : 'flex items-center justify-between px-2 py-1 rounded-lg hover:bg-slate-50';
                 const usernameDisplay = p.username ? '@' + p.username : (p.handle || '');
                 row.innerHTML = `
-                    <div class="flex flex-col">
-                        <span class="text-[11px] font-semibold ${fromMoreOverlay ? 'text-slate-100' : 'text-slate-800'}">${p.displayName || p.name}</span>
-                        <span class="text-[10px] ${fromMoreOverlay ? 'text-slate-400' : 'text-slate-500'}">${usernameDisplay}</span>
+                    <div class="flex items-center gap-3">
+                        <div class="h-8 w-8 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-sm relative">
+                            ${p.pfpUrl ? `<img src="${p.pfpUrl}" class="h-full w-full object-cover rounded-full">` : (p.displayName || p.name || '?').slice(0, 2).toUpperCase()}
+                            ${p.customStatus && p.customStatus.emoji ? `<div class="absolute -bottom-1 -right-1 w-4 h-4 bg-[#23a55a] border-2 border-[#1e1f22] rounded-full flex items-center justify-center text-[8px]">${p.customStatus.emoji}</div>` : ''}
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-[11px] font-bold ${fromMoreOverlay ? 'text-slate-100' : 'text-slate-800'}">${renderPlayerName(p)}</span>
+                            <span class="text-[10px] ${fromMoreOverlay ? 'text-slate-400' : 'text-slate-500'}">${usernameDisplay}</span>
+                        </div>
                     </div>
                     <div class="flex items-center gap-2">
                         <div class="text-right mr-1">
                             <span class="block text-[11px] font-bold text-amber-500">${(p.coins || 0).toLocaleString()}c</span>
                             <span class="block text-[10px] ${fromMoreOverlay ? 'text-slate-400' : 'text-slate-500'}">${mins}m</span>
                         </div>
-                        <button class="px-2 py-1 rounded-lg ${fromMoreOverlay ? 'bg-emerald-500 hover:bg-emerald-400' : 'bg-slate-900 hover:bg-slate-700'} text-[10px] text-white">
+                        <button class="visit-btn px-2 py-1 rounded-lg ${fromMoreOverlay ? 'bg-emerald-500 hover:bg-emerald-400' : 'bg-slate-900 hover:bg-slate-700'} text-[10px] text-white">
                             Visit
                         </button>
+                        ${fromMoreOverlay ? `<button class="add-friend-btn px-2 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-[10px] text-white">
+                            <i data-lucide="user-plus" class="w-3 h-3"></i>
+                        </button>` : ''}
                     </div>
                 `;
-                const visitBtn = row.querySelector('button');
+                const visitBtn = row.querySelector('.visit-btn');
                 visitBtn.onclick = (e) => {
                     e.stopPropagation();
                     openVisitedProfile(p);
                 };
+                if (fromMoreOverlay) {
+                    const addBtn = row.querySelector('.add-friend-btn');
+                    if (addBtn) {
+                        addBtn.onclick = (e) => {
+                            e.stopPropagation();
+                            sendFriendRequest(p.id, p.displayName || p.name || 'Unknown');
+                        };
+                    }
+                }
                 container.appendChild(row);
+                lucide.createIcons();
             });
         } catch (err) {
             console.warn(err);
@@ -4211,14 +4585,7 @@
 
     function openLeaderboard() {
         loadPlayers();
-        const listEl = document.getElementById('leaderboardList');
-        if (listEl) listEl.innerHTML = '<p class="text-[11px] text-slate-400 py-2 text-center">Loading...</p>';
-        // Load from Firebase first, then render
-        refreshGlobalPlayers().then(() => {
-            renderLeaderboard();
-        }).catch(() => {
-            renderLeaderboard();
-        });
+        renderGlobalLeaderboard();
         document.getElementById('leaderboardOverlay').classList.remove('hidden');
     }
 
@@ -4226,44 +4593,371 @@
         document.getElementById('leaderboardOverlay').classList.add('hidden');
     }
 
-    function renderLeaderboard() {
+    setInterval(() => {
+        if (!document.getElementById('leaderboardOverlay').classList.contains('hidden')) {
+            renderGlobalLeaderboard();
+        }
+    }, 300000);
+
+
+    function renderGlobalLeaderboard() {
         const listEl = document.getElementById('leaderboardList');
         if (!listEl) return;
-        const search = (document.getElementById('leaderboardSearch')?.value || '').toLowerCase();
-        const data = (globalPlayers && globalPlayers.length ? [...globalPlayers] : [...players]);
-        data.sort((a, b) => {
-            if (b.coins !== a.coins) return b.coins - a.coins;
-            return (b.playTimeMs || 0) - (a.playTimeMs || 0);
-        });
-        const filtered = search
-            ? data.filter(p => (p.name || '').toLowerCase().includes(search) || (p.displayName || '').toLowerCase().includes(search) || (p.username || '').toLowerCase().includes(search))
-            : data;
-            if (!filtered.length) {
+
+        if (!window._hcDb || !window._hcDbFns) {
+            listEl.innerHTML = '<p class="text-[11px] text-rose-500 py-2 text-center">Firebase not initialized.</p>';
+            return;
+        }
+
+        listEl.innerHTML = '<p class="text-[11px] text-slate-400 py-2 text-center">Loading...</p>';
+
+        const { ref, query, orderByChild, limitToLast, get } = window._hcDbFns;
+        const db = window._hcDb;
+
+        const leaderboardRef = query(ref(db, 'players'), orderByChild('coins'), limitToLast(100));
+
+        get(leaderboardRef).then(snapshot => {
+            if (snapshot.exists()) {
+                const players = [];
+                snapshot.forEach(childSnapshot => {
+                    players.push(childSnapshot.val());
+                });
+
+                players.reverse(); // asec order
+
+                listEl.innerHTML = players.map((p, i) => {
+                    const rank = i + 1;
+                    const isSelf = currentPlayer && p.id === currentPlayer.id;
+                    return `
+                        <div class="flex items-center justify-between p-2 rounded-lg ${isSelf ? 'bg-indigo-50' : ''}">
+                            <div class="flex items-center gap-3">
+                                <span class="font-black text-slate-400 w-6 text-center">${rank}</span>
+                                <div class="h-8 w-8 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-sm">
+                                    ${p.pfpUrl ? `<img src="${p.pfpUrl}" class="h-full w-full object-cover rounded-full">` : (p.displayName || p.name || '?').slice(0, 2).toUpperCase()}
+                                </div>
+                                <div>
+                                    <p class="font-bold text-slate-800 text-[11px]">${renderPlayerName(p)}</p>
+                                    <p class="text-[10px] text-slate-500">${(p.username) ? `@${p.username}` : ''}</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-black text-amber-600 text-[11px]">${(p.coins || 0).toLocaleString()}</p>
+                                <p class="text-[9px] text-slate-400">${(p.playTimeMs || 0) > 0 ? `${Math.round((p.playTimeMs || 0) / 60000)}m` : ''}</p>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } else {
                 listEl.innerHTML = '<p class="text-[11px] text-slate-400 py-2 text-center">No players yet.</p>';
+            }
+        }).catch(error => {
+            console.error("Error fetching leaderboard:", error);
+            listEl.innerHTML = '<p class="text-[11px] text-rose-500 py-2 text-center">Error loading leaderboard.</p>';
+        });
+    }
+
+
+
+
+        // ==================== CLAN SYSTEM ====================
+        let currentClan = null;
+        let clanChatListener = null;
+
+        async function openClansOverlay() {
+            document.getElementById('clanOverlay').classList.remove('hidden');
+            document.getElementById('tabClans')?.classList.add('tab-active');
+            lucide.createIcons();
+            await refreshClanView();
+        }
+
+        function closeClansOverlay() {
+            document.getElementById('clanOverlay').classList.add('hidden');
+            document.getElementById('tabClans')?.classList.remove('tab-active');
+            if (clanChatListener && window._hcDbFns) {
+                const { off, ref } = window._hcDbFns;
+                off(ref(window._hcDb, `clanChats/${currentClan?.id}`));
+                clanChatListener = null;
+            }
+        }
+
+        async function refreshClanView() {
+            if (!currentPlayer) return;
+            const { ref, get } = window._hcDbFns;
+            const db = window._hcDb;
+
+            const noClanView = document.getElementById('noClanView');
+            const inClanView = document.getElementById('inClanView');
+
+            if (currentPlayer.clanId) {
+                try {
+                    const clanSnap = await get(ref(db, `clans/${currentPlayer.clanId}`));
+                    if (clanSnap.exists()) {
+                        currentClan = { id: currentPlayer.clanId, ...clanSnap.val() };
+                        noClanView.classList.add('hidden');
+                        inClanView.classList.remove('hidden');
+                        renderClanInfo();
+                        listenClanChat();
+                        updateClanQuestUi();
+                    } else {
+                        // Clan deleted?
+                        currentPlayer.clanId = null;
+                        noClanView.classList.remove('hidden');
+                        inClanView.classList.add('hidden');
+                    }
+                } catch (e) {
+                    console.error('Refresh clan failed:', e);
+                }
+            } else {
+                noClanView.classList.remove('hidden');
+                inClanView.classList.add('hidden');
+            }
+        }
+
+        function renderClanInfo() {
+            if (!currentClan) return;
+            document.getElementById('viewClanName').textContent = currentClan.name;
+            document.getElementById('viewClanTag').textContent = currentClan.tag || 'CLAN';
+            document.getElementById('viewClanDesc').textContent = currentClan.description || 'No description.';
+            document.getElementById('viewClanLevel').textContent = currentClan.level || 1;
+            
+            const members = currentClan.members || {};
+            const memberCount = Object.keys(members).length;
+            document.getElementById('viewClanMemberCount').textContent = `${memberCount}/20`;
+
+            const listEl = document.getElementById('viewClanMemberList');
+            listEl.innerHTML = '';
+            
+            Object.entries(members).forEach(([uid, m]) => {
+                const div = document.createElement('div');
+                div.className = 'flex items-center justify-between p-2 rounded-lg bg-[#1e1f22]';
+                div.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <div class="w-6 h-6 rounded-full bg-slate-700 flex items-center justify-center text-[10px] font-bold">
+                            ${m.displayName?.slice(0,2).toUpperCase() || '??'}
+                        </div>
+                        <span class="text-[11px] font-bold">${m.displayName}</span>
+                    </div>
+                    <span class="text-[9px] uppercase font-black clan-role-${m.role || 'member'}">${m.role || 'member'}</span>
+                `;
+                listEl.appendChild(div);
+            });
+
+            const isAdmin = members[currentPlayer.id]?.role === 'owner' || members[currentPlayer.id]?.role === 'admin';
+            document.getElementById('clanAdminBtn').classList.toggle('hidden', !isAdmin);
+        }
+
+        async function createClanFromUi() {
+            if (!currentPlayer || state.coins < 5000) {
+                showToast('Need 5,000 Coins to foundation a clan!');
                 return;
             }
-            listEl.innerHTML = '';
-            filtered.forEach((p, index) => {
-                const mins = Math.floor((p.playTimeMs || 0) / 60000);
-                const row = document.createElement('div');
-                row.className = 'flex items-center justify-between px-2 py-1.5 rounded-xl hover:bg-slate-50';
-                row.innerHTML = `
-                    <div class="flex items-center gap-2">
-                        <span class="w-5 text-[11px] font-black text-slate-400">${index + 1}</span>
-                        <div class="flex flex-col">
-                            <span class="text-[11px] font-semibold text-slate-800">${p.name}</span>
-                            <span class="text-[10px] text-slate-400">Time: ${mins}m</span>
+            const nameInput = document.getElementById('createClanName');
+            const name = nameInput.value.trim();
+            if (name.length < 3) {
+                showToast('Clan name too short!');
+                return;
+            }
+
+            const { ref, set, push, update } = window._hcDbFns;
+            const db = window._hcDb;
+
+            try {
+                const clanRef = push(ref(db, 'clans'));
+                const clanId = clanRef.key;
+                const clanData = {
+                    name,
+                    tag: name.slice(0, 4).toUpperCase(),
+                    ownerId: currentPlayer.id,
+                    level: 1,
+                    createdAt: Date.now(),
+                    members: {
+                        [currentPlayer.id]: {
+                            displayName: currentPlayer.displayName || currentPlayer.name,
+                            role: 'owner',
+                            joinedAt: Date.now()
+                        }
+                    }
+                };
+
+                await set(clanRef, clanData);
+                await update(ref(db, `players/${currentPlayer.id}`), { clanId });
+                
+                currentPlayer.clanId = clanId;
+                state.coins -= 5000;
+                updateUI();
+                save();
+                
+                showToast(`Clan "${name}" founded!`);
+                await refreshClanView();
+            } catch (e) {
+                showToast('Foundation failed!');
+            }
+        }
+
+        async function searchClans() {
+            const term = document.getElementById('searchClanInput').value.trim().toLowerCase();
+            const resultsEl = document.getElementById('clanSearchResults');
+            resultsEl.innerHTML = '<p class="text-center text-[10px] py-4 text-slate-500">Searching...</p>';
+
+            const { ref, get, query, limitToFirst } = window._hcDbFns;
+            try {
+                const snap = await get(query(ref(window._hcDb, 'clans'), limitToFirst(20)));
+                resultsEl.innerHTML = '';
+                if (!snap.exists()) {
+                    resultsEl.innerHTML = '<p class="text-center text-[10px] py-4 text-slate-500">No clans found.</p>';
+                    return;
+                }
+
+                snap.forEach(child => {
+                    const c = child.val();
+                    const cid = child.key;
+                    if (!term || c.name.toLowerCase().includes(term)) {
+                        const div = document.createElement('div');
+                        div.className = 'bg-[#2b2d31] p-3 rounded-xl border border-[#3f4247] flex justify-between items-center';
+                        div.innerHTML = `
+                            <div>
+                                <p class="text-xs font-bold text-white">${c.name} <span class="text-[9px] text-purple-400 opacity-60">[${c.tag || '??'}]</span></p>
+                                <p class="text-[9px] text-slate-500">${Object.keys(c.members || {}).length}/20 Members • Level ${c.level || 1}</p>
+                            </div>
+                            <button onclick="joinClan('${cid}')" class="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-[10px] font-bold">Join</button>
+                        `;
+                        resultsEl.appendChild(div);
+                    }
+                });
+            } catch (e) {
+                resultsEl.innerHTML = '<p class="text-center text-rose-500 text-[10px]">Search failed.</p>';
+            }
+        }
+
+        async function joinClan(clanId) {
+            if (!currentPlayer) return;
+            const { ref, update, get } = window._hcDbFns;
+            const db = window._hcDb;
+
+            try {
+                const clanSnap = await get(ref(db, `clans/${clanId}`));
+                const clan = clanSnap.val();
+                if (Object.keys(clan.members || {}).length >= 20) {
+                    showToast('Clan is full!');
+                    return;
+                }
+
+                await update(ref(db, `clans/${clanId}/members/${currentPlayer.id}`), {
+                    displayName: currentPlayer.displayName || currentPlayer.name,
+                    role: 'member',
+                    joinedAt: Date.now()
+                });
+                await update(ref(db, `players/${currentPlayer.id}`), { clanId });
+
+                currentPlayer.clanId = clanId;
+                showToast(`Joined ${clan.name}!`);
+                await refreshClanView();
+            } catch (e) {
+                showToast('Failed to join clan.');
+            }
+        }
+
+        async function leaveClanFromUi() {
+            if (!currentPlayer || !currentPlayer.clanId) return;
+            const { ref, remove, update } = window._hcDbFns;
+            const db = window._hcDb;
+
+            try {
+                await remove(ref(db, `clans/${currentPlayer.clanId}/members/${currentPlayer.id}`));
+                await update(ref(db, `players/${currentPlayer.id}`), { clanId: null });
+                
+                currentPlayer.clanId = null;
+                currentClan = null;
+                showToast('Left clan.');
+                await refreshClanView();
+            } catch (e) {
+                showToast('Failed to leave.');
+            }
+        }
+
+        function listenClanChat() {
+            if (!currentClan) return;
+            const { ref, onValue, off, limitToLast, query } = window._hcDbFns;
+            const chatRef = query(ref(window._hcDb, `clanChats/${currentClan.id}`), limitToLast(50));
+            
+            if (clanChatListener) off(ref(window._hcDb, `clanChats/${currentClan.id}`));
+
+            clanChatListener = onValue(chatRef, (snap) => {
+                const messagesEl = document.getElementById('clanChatMessages');
+                messagesEl.innerHTML = '';
+                if (!snap.exists()) return;
+
+                snap.forEach(child => {
+                    const m = child.val();
+                    const isMe = m.senderId === currentPlayer.id;
+                    const div = document.createElement('div');
+                    div.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'}`;
+                    div.innerHTML = `
+                        <div class="flex items-center gap-1.5 mb-0.5">
+                            <span class="text-[9px] font-black ${isMe ? 'text-indigo-400' : 'text-slate-400'}">${m.senderName}</span>
+                            <span class="text-[8px] opacity-40">${new Date(m.sentAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
                         </div>
-                    </div>
-                    <div class="text-right">
-                        <span class="block text-[11px] font-bold text-amber-600">${(p.coins || 0).toLocaleString()}c</span>
-                    </div>
-                `;
-                listEl.appendChild(row);
+                        <div class="px-3 py-1.5 rounded-2xl ${isMe ? 'bg-indigo-600 rounded-tr-none' : 'bg-[#313338] rounded-tl-none'} max-w-[90%] break-words">
+                            ${escapeHtml(m.text)}
+                        </div>
+                    `;
+                    messagesEl.appendChild(div);
+                });
+                messagesEl.scrollTop = messagesEl.scrollHeight;
             });
         }
 
-        // ==================== MINI GAMES SYSTEM ====================
+        async function sendClanChatMessage() {
+            const input = document.getElementById('clanChatInput');
+            const text = input.value.trim();
+            if (!text || !currentClan) return;
+
+            const { ref, push, set } = window._hcDbFns;
+            try {
+                const msgRef = push(ref(window._hcDb, `clanChats/${currentClan.id}`));
+                await set(msgRef, {
+                    senderId: currentPlayer.id,
+                    senderName: currentPlayer.displayName || currentPlayer.name,
+                    text,
+                    sentAt: Date.now()
+                });
+                input.value = '';
+            } catch (e) {
+                showToast('Message failed.');
+            }
+        }
+
+        async function incrementClanQuestProgress(amount) {
+            if (!currentPlayer || !currentPlayer.clanId) return;
+            const { ref, runTransaction } = window._hcDbFns;
+            const questRef = ref(window._hcDb, `clans/${currentPlayer.clanId}/quest`);
+            
+            try {
+                await runTransaction(questRef, (current) => {
+                    if (!current) current = { progress: 0, goal: 50, claimed: false };
+                    current.progress = (current.progress || 0) + amount;
+                    return current;
+                });
+                updateClanQuestUi();
+            } catch (e) {
+                console.error('Quest update failed');
+            }
+        }
+
+        async function updateClanQuestUi() {
+            if (!currentPlayer || !currentPlayer.clanId) return;
+            const { ref, get } = window._hcDbFns;
+            try {
+                const snap = await get(ref(window._hcDb, `clans/${currentPlayer.clanId}/quest`));
+                const q = snap.exists() ? snap.val() : { progress: 0, goal: 50 };
+                
+                const bar = document.getElementById('clanQuestProgress');
+                if (bar) {
+                    const pct = Math.min(100, (q.progress / q.goal) * 100);
+                    bar.style.width = pct + '%';
+                }
+            } catch (e) {}
+        }
         let currentGameType = null;
         let currentGameId = null;
 
@@ -4538,133 +5232,328 @@
         const origInit=init;
         init=function(){origInit();listenFights();listenGuessRes();};
 
-        // Daily Rewards Functions
+        // ==================== FRIENDS SYSTEM ====================
+        let friendsListener = null;
+        let friendRequestsListener = null;
+        let sentFriendRequestsListener = null;
+
+        function switchMoreTab(tab) {
+            document.getElementById('moreSectionPlayers').classList.toggle('hidden', tab !== 'players');
+            document.getElementById('moreSectionFriends').classList.toggle('hidden', tab !== 'friends');
+            document.getElementById('moreSectionAccount').classList.toggle('hidden', tab !== 'account');
+            
+            document.getElementById('moreTabPlayers').classList.toggle('bg-[#313338]', tab === 'players');
+            document.getElementById('moreTabPlayers').classList.toggle('text-white', tab === 'players');
+            document.getElementById('moreTabPlayers').classList.toggle('text-slate-400', tab !== 'players');
+            
+            document.getElementById('moreTabFriends').classList.toggle('bg-[#313338]', tab === 'friends');
+            document.getElementById('moreTabFriends').classList.toggle('text-white', tab === 'friends');
+            document.getElementById('moreTabFriends').classList.toggle('text-slate-400', tab !== 'friends');
+            
+            document.getElementById('moreTabAccount').classList.toggle('bg-[#313338]', tab === 'account');
+            document.getElementById('moreTabAccount').classList.toggle('text-white', tab === 'account');
+            document.getElementById('moreTabAccount').classList.toggle('text-slate-400', tab !== 'account');
+
+            if (tab === 'friends') loadFriendsSystem();
+        }
+
+        async function loadFriendsSystem() {
+            if (!currentPlayer || !window._hcDb || !window._hcDbFns) return;
+            const { ref, onValue, off } = window._hcDbFns;
+            const db = window._hcDb;
+
+            // Listen for Incoming Friend Requests
+            if (friendRequestsListener) off(ref(db, `friendRequests/${currentPlayer.id}`));
+            friendRequestsListener = onValue(ref(db, `friendRequests/${currentPlayer.id}`), (snap) => {
+                const list = document.getElementById('friendRequestsList');
+                const badge = document.getElementById('friendRequestBadge');
+                list.innerHTML = '';
+                let count = 0;
+                if (snap.exists()) {
+                    snap.forEach(child => {
+                        const req = child.val();
+                        if (req.status === 'pending') {
+                            count++;
+                            const div = document.createElement('div');
+                            div.className = 'flex items-center justify-between p-2 rounded-lg bg-[#1e1f22]';
+                            div.innerHTML = `
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[10px] font-bold text-slate-200">${req.fromName}</span>
+                                </div>
+                                <div class="flex gap-1">
+                                    <button onclick="acceptFriendRequest('${child.key}', '${req.fromId}', '${req.fromName}')" class="p-1 rounded bg-emerald-600 hover:bg-emerald-500"><i data-lucide="check" class="w-3 h-3"></i></button>
+                                    <button onclick="declineFriendRequest('${child.key}', '${req.fromId}')" class="p-1 rounded bg-rose-600 hover:bg-rose-500"><i data-lucide="x" class="w-3 h-3"></i></button>
+                                </div>
+                            `;
+                            list.appendChild(div);
+                        }
+                    });
+                }
+                badge.textContent = count;
+                badge.classList.toggle('hidden', count === 0);
+                lucide.createIcons();
+            });
+
+            // Listen for Sent Friend Requests
+            if (sentFriendRequestsListener) off(ref(db, `sentFriendRequests/${currentPlayer.id}`));
+            sentFriendRequestsListener = onValue(ref(db, `sentFriendRequests/${currentPlayer.id}`), (snap) => {
+                const list = document.getElementById('sentFriendRequestsList');
+                list.innerHTML = '';
+                if (snap.exists()) {
+                    snap.forEach(child => {
+                        const req = child.val();
+                        const date = new Date(req.sentAt).toLocaleDateString();
+                        const div = document.createElement('div');
+                        div.className = 'flex items-center justify-between p-2 rounded-lg bg-[#1e1f22]';
+                        let statusColor = 'text-amber-400';
+                        if (req.status === 'accepted') statusColor = 'text-emerald-400';
+                        if (req.status === 'rejected') statusColor = 'text-rose-400';
+                        
+                        div.innerHTML = `
+                            <div class="flex flex-col">
+                                <span class="text-[10px] font-bold text-slate-200">${req.toName}</span>
+                                <span class="text-[8px] text-slate-500">${date}</span>
+                            </div>
+                            <span class="text-[9px] font-bold uppercase ${statusColor}">${req.status}</span>
+                        `;
+                        list.appendChild(div);
+                    });
+                } else {
+                    list.innerHTML = '<p class="text-center text-[10px] py-2 text-slate-500">No sent requests.</p>';
+                }
+            });
+
+            // Listen for Friends
+            if (friendsListener) off(ref(db, `friends/${currentPlayer.id}`));
+            friendsListener = onValue(ref(db, `friends/${currentPlayer.id}`), (snap) => {
+                const list = document.getElementById('myFriendsList');
+                list.innerHTML = '';
+                if (!snap.exists()) {
+                    list.innerHTML = '<p class="text-center text-[10px] py-4 text-slate-500">No friends yet.</p>';
+                    return;
+                }
+                snap.forEach(child => {
+                    const friend = child.val();
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center justify-between p-2 rounded-lg bg-[#1e1f22]';
+                    div.innerHTML = `
+                        <div class="flex items-center gap-2">
+                            <div class="w-2 h-2 rounded-full ${friend.online ? 'bg-emerald-500' : 'bg-slate-500'}"></div>
+                            <span class="text-[10px] font-bold text-slate-200">${friend.displayName}</span>
+                        </div>
+                        <button onclick="openPrivateChat('${child.key}', '${friend.displayName}')" class="p-1 rounded bg-indigo-600 hover:bg-indigo-500">
+                            <i data-lucide="message-square" class="w-3 h-3"></i>
+                        </button>
+                    `;
+                    list.appendChild(div);
+                });
+                lucide.createIcons();
+            });
+        }
+
+        async function sendFriendRequest(targetId, targetName) {
+            if (!currentPlayer || targetId === currentPlayer.id) return;
+            const { ref, set, get, update } = window._hcDbFns;
+            try {
+                const checkSnap = await get(ref(window._hcDb, `friends/${currentPlayer.id}/${targetId}`));
+                if (checkSnap.exists()) {
+                    showToast('Already friends!');
+                    return;
+                }
+                const now = Date.now();
+                const updates = {};
+                // Record for target (incoming)
+                updates[`friendRequests/${targetId}/${currentPlayer.id}`] = {
+                    fromId: currentPlayer.id,
+                    fromName: currentPlayer.displayName || currentPlayer.name,
+                    status: 'pending',
+                    sentAt: now
+                };
+                // Record for current user (sent)
+                updates[`sentFriendRequests/${currentPlayer.id}/${targetId}`] = {
+                    toId: targetId,
+                    toName: targetName,
+                    status: 'pending',
+                    sentAt: now
+                };
+                await update(ref(window._hcDb), updates);
+                showToast('Friend request sent!');
+            } catch (e) {
+                showToast('Failed to send request');
+            }
+        }
+
+        async function acceptFriendRequest(requestId, fromId, fromName) {
+            const { ref, update, remove } = window._hcDbFns;
+            const db = window._hcDb;
+            try {
+                const now = Date.now();
+                const updates = {};
+                // Add to friends list for both
+                updates[`friends/${currentPlayer.id}/${fromId}`] = { displayName: fromName, joinedAt: now, online: true };
+                updates[`friends/${fromId}/${currentPlayer.id}`] = { displayName: currentPlayer.displayName || currentPlayer.name, joinedAt: now, online: true };
+                // Update status in sent/incoming
+                updates[`sentFriendRequests/${fromId}/${currentPlayer.id}/status`] = 'accepted';
+                await update(ref(db), updates);
+                // Remove incoming request record
+                await remove(ref(db, `friendRequests/${currentPlayer.id}/${requestId}`));
+                showToast('Friend request accepted!');
+            } catch (e) {
+                showToast('Failed to accept');
+            }
+        }
+
+        async function declineFriendRequest(requestId, fromId) {
+            const { ref, remove, update } = window._hcDbFns;
+            try {
+                const updates = {};
+                updates[`sentFriendRequests/${fromId}/${currentPlayer.id}/status`] = 'rejected';
+                await update(ref(window._hcDb), updates);
+                await remove(ref(window._hcDb, `friendRequests/${currentPlayer.id}/${requestId}`));
+                showToast('Request declined');
+            } catch (e) {
+                showToast('Failed to decline');
+            }
+        }
+
+        function openPrivateChat(friendId, friendName) {
+            showToast(`Private chat with ${friendName} (Coming soon)`);
+        }
+
+        // Daily Rewards Functions update
         async function openDailyRewardsOverlay() {
             const el = document.getElementById('dailyRewardsOverlay');
             if (!el) return;
             el.classList.remove('hidden');
-            lucide.createIcons();
+            document.getElementById('tabDaily')?.classList.add('tab-active');
             await loadDailyRewardsData();
+            lucide.createIcons();
         }
 
         function closeDailyRewardsOverlay() {
             const el = document.getElementById('dailyRewardsOverlay');
             if (el) el.classList.add('hidden');
+            document.getElementById('tabDaily')?.classList.remove('tab-active');
         }
+
+        let dailyRewardTimer = null;
 
         async function loadDailyRewardsData() {
             if (!currentPlayer || !window._hcDb || !window._hcDbFns) return;
             const { ref, get } = window._hcDbFns;
             
-            try {
-                // Get config
-                const configSnap = await get(ref(window._hcDb, 'config/dailyRewards'));
-                const config = configSnap.exists() ? configSnap.val() : getDefaultDailyRewards();
-                
-                // Get user progress
-                const progressSnap = await get(ref(window._hcDb, `dailyRewards/${currentPlayer.id}`));
-                const progress = progressSnap.exists() ? progressSnap.val() : { streak: 0, lastClaim: 0, claimedDays: [] };
-                
-                renderDailyRewards(config, progress);
-            } catch (e) {
-                console.warn('Failed to load daily rewards:', e);
-            }
-        }
-
-        function getDefaultDailyRewards() {
-            return {
-                1: { type: 'coins', value: '100' },
-                2: { type: 'coins', value: '200' },
-                3: { type: 'coins', value: '300' },
-                4: { type: 'element', value: 'Max' },
-                5: { type: 'coins', value: '500' },
-                6: { type: 'upgrade', value: 'doubleCoins' },
-                7: { type: 'golden', value: 'true' }
-            };
-        }
-
-        function renderDailyRewards(config, progress) {
             const grid = document.getElementById('dailyRewardsGrid');
             const streakEl = document.getElementById('streakNumber');
             const claimArea = document.getElementById('dailyRewardClaimArea');
             const claimedArea = document.getElementById('dailyRewardClaimed');
-            const todayReward = document.getElementById('todayRewardContent');
+            const todayRewardContent = document.getElementById('todayRewardContent');
             
-            if (!grid) return;
+            if (!grid || !streakEl) return;
             
-            streakEl.textContent = progress.streak || 0;
-            
-            // Calculate current day (1-7 based on streak)
-            const currentDay = ((progress.streak || 0) % 7) || 1;
-            const today = new Date().toDateString();
-            const lastClaim = progress.lastClaim ? new Date(progress.lastClaim).toDateString() : null;
-            const canClaim = lastClaim !== today;
-            
-            // Render 7 days
-            grid.innerHTML = '';
-            for (let day = 1; day <= 7; day++) {
-                const reward = config[day] || { type: 'coins', value: '100' };
-                const dayEl = document.createElement('div');
-                dayEl.className = 'daily-reward-day';
+            try {
+                const progressSnap = await get(ref(window._hcDb, `dailyRewards/${currentPlayer.id}`));
+                const progress = progressSnap.exists() ? progressSnap.val() : { streak: 0, lastClaim: 0 };
                 
-                if (day < currentDay || (day === 7 && currentDay === 1 && !canClaim)) {
-                    dayEl.classList.add('claimed');
-                } else if (day === currentDay && canClaim) {
-                    dayEl.classList.add('active');
-                } else {
-                    dayEl.classList.add('pending');
+                const now = new Date();
+                const today = now.toDateString();
+                const lastClaimDate = progress.lastClaim ? new Date(progress.lastClaim) : null;
+                const lastClaim = lastClaimDate ? lastClaimDate.toDateString() : null;
+                const isClaimedToday = (lastClaim === today);
+                
+                let currentDayInCycle = 1;
+                if (progress.streak > 0) {
+                    const yesterday = new Date();
+                    yesterday.setDate(yesterday.getDate() - 1);
+                    const wasYesterday = lastClaim === yesterday.toDateString();
+                    
+                    if (isClaimedToday) {
+                        currentDayInCycle = ((progress.streak - 1) % 7) + 1;
+                    } else if (wasYesterday) {
+                        currentDayInCycle = (progress.streak % 7) + 1;
+                    } else {
+                        currentDayInCycle = 1; // Streak broken
+                    }
                 }
                 
-                const icon = getRewardIcon(reward.type);
-                dayEl.innerHTML = `
-                    <span class="text-[8px] text-slate-400">Day ${day}</span>
-                    <span class="text-lg">${icon}</span>
-                    <span class="text-[8px] text-slate-300">${reward.type}</span>
-                `;
-                grid.appendChild(dayEl);
+                streakEl.textContent = progress.streak || 0;
+                grid.innerHTML = '';
+                
+                for (let i = 1; i <= 7; i++) {
+                    const reward = DAILY_REWARDS_CONFIG[i];
+                    const isClaimed = i < currentDayInCycle || (i === currentDayInCycle && isClaimedToday);
+                    const isCurrent = i === currentDayInCycle && !isClaimedToday;
+                    
+                    const dayEl = document.createElement('div');
+                    dayEl.className = `daily-reward-day ${isClaimed ? 'claimed' : ''} ${isCurrent ? 'active' : ''} relative`;
+                    dayEl.innerHTML = `
+                        <span class="text-[9px] font-bold opacity-60">Day ${i}</span>
+                        <i data-lucide="${reward.icon}" class="w-5 h-5 my-1"></i>
+                        <span class="text-[8px] font-black uppercase text-center">${reward.label}</span>
+                        ${isClaimed ? '<i data-lucide="check" class="w-3 h-3 absolute top-1 right-1 text-emerald-400"></i>' : ''}
+                    `;
+                    grid.appendChild(dayEl);
+                }
+                lucide.createIcons();
+                
+                if (isClaimedToday) {
+                    claimArea.classList.add('hidden');
+                    claimedArea.classList.remove('hidden');
+                    startDailyRewardCountdown();
+                } else {
+                    claimArea.classList.remove('hidden');
+                    claimedArea.classList.add('hidden');
+                    if (dailyRewardTimer) { clearInterval(dailyRewardTimer); dailyRewardTimer = null; }
+                    const todayReward = DAILY_REWARDS_CONFIG[currentDayInCycle];
+                    todayRewardContent.innerHTML = `
+                        <i data-lucide="${todayReward.icon}" class="w-8 h-8 mx-auto text-amber-400 mb-2"></i>
+                        <p class="text-sm font-black text-white uppercase">${todayReward.label}</p>
+                    `;
+                    lucide.createIcons();
+                }
+            } catch (e) {
+                console.error('Load daily rewards failed:', e);
             }
+        }
+
+        function startDailyRewardCountdown() {
+            if (dailyRewardTimer) clearInterval(dailyRewardTimer);
+            const countdownEl = document.getElementById('dailyRewardCountdown');
+            if (!countdownEl) return;
+
+            const updateTimer = () => {
+                const now = new Date();
+                const tomorrow = new Date(now);
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                tomorrow.setHours(0, 0, 0, 0);
+                
+                const diff = tomorrow - now;
+                if (diff <= 0) {
+                    clearInterval(dailyRewardTimer);
+                    loadDailyRewardsData();
+                    return;
+                }
+                
+                const h = Math.floor(diff / 3600000);
+                const m = Math.floor((diff % 3600000) / 60000);
+                const s = Math.floor((diff % 60000) / 1000);
+                countdownEl.textContent = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+            };
             
-            // Show claim area or claimed
-            if (canClaim) {
-                claimArea.classList.remove('hidden');
-                claimedArea.classList.add('hidden');
-                const reward = config[currentDay] || { type: 'coins', value: '100' };
-                todayReward.innerHTML = `
-                    <span class="text-2xl">${getRewardIcon(reward.type)}</span>
-                    <p class="text-[11px] text-slate-300 mt-1">${formatReward(reward)}</p>
-                `;
-            } else {
-                claimArea.classList.add('hidden');
-                claimedArea.classList.remove('hidden');
-            }
-        }
-
-        function getRewardIcon(type) {
-            const icons = {
-                coins: '🪙',
-                element: '🎁',
-                upgrade: '⚡',
-                badge: '🏅',
-                golden: '✨'
-            };
-            return icons[type] || '🎁';
-        }
-
-        function formatReward(reward) {
-            const typeLabels = {
-                coins: `${reward.value} Coins`,
-                element: `Element: ${reward.value}`,
-                upgrade: `Upgrade: ${reward.value}`,
-                badge: `Badge: ${reward.value}`,
-                golden: 'Golden Name (7 days)'
-            };
-            return typeLabels[reward.type] || reward.value;
+            updateTimer();
+            dailyRewardTimer = setInterval(updateTimer, 1000);
         }
 
         async function claimDailyReward() {
             if (!currentPlayer || !window._hcDb || !window._hcDbFns) return;
             const { ref, get, set, update } = window._hcDbFns;
+            const claimBtn = document.querySelector('button[onclick="claimDailyReward()"]');
             
+            if (claimBtn) {
+                claimBtn.disabled = true;
+                claimBtn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin mx-auto"></i>';
+                lucide.createIcons();
+            }
+
             try {
                 const progressSnap = await get(ref(window._hcDb, `dailyRewards/${currentPlayer.id}`));
                 const progress = progressSnap.exists() ? progressSnap.val() : { streak: 0, lastClaim: 0 };
@@ -4672,39 +5561,61 @@
                 const today = new Date().toDateString();
                 const lastClaim = progress.lastClaim ? new Date(progress.lastClaim).toDateString() : null;
                 
-                if (lastClaim === today) {
-                    showToast('Already claimed today!');
-                    return;
-                }
+                if (lastClaim === today) throw new Error('Already claimed today!');
                 
-                // Check streak
                 const yesterday = new Date();
                 yesterday.setDate(yesterday.getDate() - 1);
                 const wasYesterday = lastClaim === yesterday.toDateString();
                 
-                const newStreak = wasYesterday ? (progress.streak || 0) + 1 : 1;
-                const currentDay = (newStreak % 7) || 1;
+                const newStreak = (wasYesterday || !lastClaim) ? (progress.streak || 0) + 1 : 1;
+                const currentDayInCycle = ((newStreak - 1) % 7) + 1;
                 
-                // Get reward config
-                const configSnap = await get(ref(window._hcDb, 'config/dailyRewards'));
-                const config = configSnap.exists() ? configSnap.val() : getDefaultDailyRewards();
-                const reward = config[currentDay] || { type: 'coins', value: '100' };
+                const reward = DAILY_REWARDS_CONFIG[currentDayInCycle];
                 
-                // Apply reward
+                let bonusText = '';
+                if (Math.random() < 0.1) {
+                    state.coins += 500;
+                    bonusText = ' + 500 Bonus Coins!';
+                }
+
                 await applyReward(reward);
                 
-                // Save progress
                 await set(ref(window._hcDb, `dailyRewards/${currentPlayer.id}`), {
                     streak: newStreak,
-                    lastClaim: Date.now(),
-                    lastDay: currentDay
+                    lastClaim: Date.now()
                 });
                 
-                showToast(`Claimed: ${formatReward(reward)}`);
+                // Real-time balance update and confetti
+                if (typeof confetti === 'function') {
+                    confetti({
+                        particleCount: 100,
+                        spread: 70,
+                        origin: { y: 0.6 }
+                    });
+                }
+                
+                showToast(`Claimed: ${reward.label}${bonusText}`);
+                if (currentDayInCycle === 7) {
+                    showToast('✨ 7-Day Streak Complete! Cycle Reset.');
+                    if (typeof confetti === 'function') {
+                        confetti({
+                            particleCount: 200,
+                            spread: 160,
+                            origin: { y: 0.6 }
+                        });
+                    }
+                }
+
                 await loadDailyRewardsData();
+                updateUI(); // Ensure balance reflects immediately
             } catch (e) {
                 console.warn('Claim failed:', e);
-                showToast('Failed to claim reward');
+                showToast(e.message || 'Failed to claim reward');
+            } finally {
+                if (claimBtn) {
+                    claimBtn.disabled = false;
+                    claimBtn.textContent = 'Claim Reward';
+                }
             }
         }
 
@@ -4726,7 +5637,6 @@
                 updateUI();
                 save();
             } else if (reward.type === 'golden') {
-                // Apply golden text for 7 days
                 if (window._hcDb && window._hcDbFns) {
                     const { ref, update } = window._hcDbFns;
                     await update(ref(window._hcDb, `players/${currentPlayer.id}`), {
@@ -5334,46 +6244,21 @@
         }
 
         // Profile Customization Functions
-        async function openProfileCustomizeOverlay() {
-            const el = document.getElementById('profileCustomizeOverlay');
-            if (!el) return;
-            el.classList.remove('hidden');
-            lucide.createIcons();
-            await loadCurrentCustomization();
-        }
-
-        function closeProfileCustomizeOverlay() {
-            const el = document.getElementById('profileCustomizeOverlay');
-            if (el) el.classList.add('hidden');
-        }
-
-        async function loadCurrentCustomization() {
-            if (!currentPlayer || !window._hcDb || !window._hcDbFns) return;
-            const { ref, get } = window._hcDbFns;
-            
-            try {
-                const snap = await get(ref(window._hcDb, `players/${currentPlayer.id}`));
-                if (snap.exists()) {
-                    const data = snap.val();
-                    if (data.customStatus) {
-                        document.getElementById('statusEmoji').value = data.customStatus.emoji || '';
-                        document.getElementById('statusTextInput').value = data.customStatus.text || '';
-                    }
-                }
-            } catch (e) {
-                console.warn('Failed to load customization:', e);
-            }
-        }
-
         async function setProfileTheme(theme) {
             if (!currentPlayer || !window._hcDb || !window._hcDbFns) return;
             const { ref, update } = window._hcDbFns;
             
+            currentPlayer.profileTheme = theme;
             try {
                 await update(ref(window._hcDb, `players/${currentPlayer.id}`), {
                     profileTheme: theme
                 });
                 showToast(`Theme set: ${theme}`);
+                loadProfileOverlay(true, currentPlayer);
+                // Refresh the view if overlay is open
+                if (!document.getElementById('profileOverlay').classList.contains('hidden')) {
+                    loadProfileOverlay(true, currentPlayer);
+                }
             } catch (e) {
                 showToast('Failed to set theme');
             }
@@ -5383,11 +6268,17 @@
             if (!currentPlayer || !window._hcDb || !window._hcDbFns) return;
             const { ref, update } = window._hcDbFns;
             
+            currentPlayer.nameColor = color;
             try {
                 await update(ref(window._hcDb, `players/${currentPlayer.id}`), {
                     nameColor: color
                 });
                 showToast(`Name color set: ${color}`);
+                loadProfileOverlay(true, currentPlayer);
+                // Refresh the view if overlay is open
+                if (!document.getElementById('profileOverlay').classList.contains('hidden')) {
+                    loadProfileOverlay(true, currentPlayer);
+                }
             } catch (e) {
                 showToast('Failed to set color');
             }
@@ -5405,11 +6296,15 @@
                 return;
             }
             
+            currentPlayer.customStatus = { emoji, text, setAt: Date.now() };
             try {
                 await update(ref(window._hcDb, `players/${currentPlayer.id}`), {
-                    customStatus: { emoji, text, setAt: Date.now() }
+                    customStatus: currentPlayer.customStatus
                 });
                 showToast('Status updated!');
+                if (!document.getElementById('profileOverlay').classList.contains('hidden')) {
+                    loadProfileOverlay(true, currentPlayer);
+                }
             } catch (e) {
                 showToast('Failed to set status');
             }
@@ -5419,6 +6314,7 @@
             if (!currentPlayer || !window._hcDb || !window._hcDbFns) return;
             const { ref, update } = window._hcDbFns;
             
+            delete currentPlayer.customStatus;
             try {
                 await update(ref(window._hcDb, `players/${currentPlayer.id}`), {
                     customStatus: null
@@ -5426,16 +6322,61 @@
                 document.getElementById('statusEmoji').value = '';
                 document.getElementById('statusTextInput').value = '';
                 showToast('Status cleared');
+                loadProfileOverlay(true, currentPlayer);
+                if (!document.getElementById('profileOverlay').classList.contains('hidden')) {
+                    loadProfileOverlay(true, currentPlayer);
+                }
             } catch (e) {
                 showToast('Failed to clear status');
             }
         }
 
+        // ------------------------- Self-Tests (Internal QA) -------------------------
+        window._hcTests = {
+            testChatFlow: async () => {
+                console.log("Testing chat flow...");
+                try {
+                    if (!currentPlayer) throw new Error("No player logged in");
+                    await loadChatConversations();
+                    console.log("✅ Chat conversations loaded");
+                    return true;
+                } catch (e) {
+                    console.error("❌ Chat flow failed:", e);
+                    return false;
+                }
+            },
+            testRewardModal: async () => {
+                console.log("Testing reward modal...");
+                try {
+                    await openDailyRewardsOverlay();
+                    const grid = document.getElementById('dailyRewardsGrid');
+                    if (!grid || grid.children.length !== 7) throw new Error("Invalid reward grid");
+                    console.log("✅ Reward modal state valid");
+                    closeDailyRewardsOverlay();
+                    return true;
+                } catch (e) {
+                    console.error("❌ Reward modal test failed:", e);
+                    return false;
+                }
+            },
+            testClanData: async () => {
+                console.log("Testing clan data...");
+                try {
+                    await refreshClanView();
+                    console.log("✅ Clan view refreshed");
+                    return true;
+                } catch (e) {
+                    console.error("❌ Clan data test failed:", e);
+                    return false;
+                }
+            }
+        };
+
         window.onload = init;
     </script>
 
     <!-- Daily Rewards Overlay -->
-    <div id="dailyRewardsOverlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[118] flex items-center justify-center hidden">
+    <div id="dailyRewardsOverlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[0] flex items-center justify-center hidden">
         <div class="bg-[#1e1f22] text-white rounded-3xl w-full max-w-md mx-4 shadow-2xl overflow-hidden">
             <div class="h-16 bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 flex items-center justify-between px-6">
                 <div>
@@ -5466,14 +6407,18 @@
                 </div>
                 <div id="dailyRewardClaimed" class="hidden text-center py-4">
                     <p class="text-[12px] text-emerald-400 font-semibold">✓ Already Claimed Today</p>
-                    <p class="text-[10px] text-slate-500 mt-1">Come back tomorrow!</p>
+                    <div class="mt-2 bg-[#2b2d31] rounded-xl p-2 border border-[#3f4247] inline-block">
+                        <p class="text-[9px] text-slate-500 uppercase font-bold tracking-wider">Next Reward In</p>
+                        <p id="dailyRewardCountdown" class="text-lg font-black text-white">00:00:00</p>
+                    </div>
+                    <p class="text-[10px] text-slate-500 mt-2">Come back tomorrow!</p>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Friends Overlay -->
-    <div id="friendsOverlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[118] flex items-center justify-center hidden">
+    <div id="friendsOverlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[0] flex items-center justify-center hidden">
         <div class="bg-[#1e1f22] text-white rounded-3xl w-full max-w-md mx-4 shadow-2xl overflow-hidden">
             <div class="h-16 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 flex items-center justify-between px-6">
                 <div>
@@ -5547,14 +6492,111 @@
         .clan-role-member { color: #94a3b8; }
 
         /* Name Colors */
-        .name-rainbow {
-            background: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3);
+        .board-grid { 
+            background-image: radial-gradient(#e2e8f0 1.5px, transparent 1.5px); 
+            background-size: 50px 50px; 
+            transition: background-color 0.5s ease;
+            z-index: -1;
+        }
+        .theme-dark .board-grid { 
+            background-image: radial-gradient(#334155 1.5px, transparent 1.5px); 
+            background-color: var(--bg-dark); 
+            z-index: -1;
+        }
+
+        .item-card { 
+            will-change: transform; 
+            z-index: 0;
+            min-width: 160px;
+            touch-action: none;
+        }
+        .item-card:not(.dragging) {
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .item-card:active { transform: scale(1.05) rotate(2deg); cursor: grabbing; }
+
+        .status-bubble {
+            position: absolute;
+            bottom: -2px;
+            right: -2px;
+            width: 22px;
+            height: 22px;
+            background: #23a55a;
+            border-radius: 50%;
+            border: 3px solid #1e1f22;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            z-index: 0;
+            transition: transform 0.2s ease;
+        }
+
+        .status-bubble:hover {
+            transform: scale(1.1);
+        }
+
+        .status-bubble-tooltip {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #111214;
+            color: white;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 10px;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            z-index: 0;
+        }
+
+        .status-bubble:hover .status-bubble-tooltip {
+            opacity: 1;
+        }
+
+        /* Name Colors & Effects */
+        .name-effect-animated {
+            background: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3, #ff0000);
+            background-size: 200% auto;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
             animation: rainbow-shift 3s linear infinite;
         }
-        @keyframes rainbow-shift { 0% { filter: hue-rotate(0deg); } 100% { filter: hue-rotate(360deg); } }
+
+        .name-effect-gradient {
+            background: linear-gradient(135deg, var(--gradient-start, #5865f2), var(--gradient-end, #00d2ff));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .color-preset-btn {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: transform 0.1s ease;
+        }
+
+        .color-preset-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .color-preset-btn.active {
+            border-color: white;
+            box-shadow: 0 0 0 2px #5865f2;
+        }
+
+        @keyframes rainbow-shift {
+            0% { background-position: 0% center; }
+            100% { background-position: -200% center; }
+        }
 
         .name-red { color: #ef4444; }
         .name-blue { color: #3b82f6; }
@@ -5567,7 +6609,7 @@
     </style>
 
     <!-- Clans Overlay -->
-    <div id="clansOverlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[118] flex items-center justify-center hidden">
+    <div id="clansOverlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[0] flex items-center justify-center hidden">
         <div class="bg-[#1e1f22] text-white rounded-3xl w-full max-w-2xl mx-4 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
             <div class="h-16 bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 flex items-center justify-between px-6">
                 <div>
@@ -5661,71 +6703,5 @@
         </div>
     </div>
 
-    <!-- Profile Customization Overlay -->
-    <div id="profileCustomizeOverlay" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[118] flex items-center justify-center hidden">
-        <div class="bg-[#1e1f22] text-white rounded-3xl w-full max-w-md mx-4 shadow-2xl overflow-hidden">
-            <div class="h-16 bg-gradient-to-r from-sky-500 via-cyan-500 to-teal-500 flex items-center justify-between px-6">
-                <div>
-                    <p class="text-[10px] uppercase tracking-[0.2em] text-sky-100/80 font-semibold">Profile</p>
-                    <p class="text-sm font-semibold">Customization</p>
-                </div>
-                <button onclick="closeProfileCustomizeOverlay()" class="p-1.5 rounded-full bg-black/30 hover:bg-black/50">
-                    <i data-lucide="x" class="w-4 h-4 text-slate-100"></i>
-                </button>
-            </div>
-            <div class="px-6 py-4 space-y-4 text-xs">
-                <!-- Profile Theme -->
-                <div class="bg-[#2b2d31] rounded-2xl p-3 border border-[#3f4247] space-y-2">
-                    <p class="uppercase text-[10px] text-slate-400 font-semibold">Profile Theme</p>
-                    <div class="grid grid-cols-4 gap-2">
-                        <button onclick="setProfileTheme('default')" class="p-2 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 text-[9px]">Default</button>
-                        <button onclick="setProfileTheme('dark')" class="p-2 rounded-lg bg-slate-900 border border-slate-700 text-[9px]">Dark</button>
-                        <button onclick="setProfileTheme('ocean')" class="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 text-[9px]">Ocean</button>
-                        <button onclick="setProfileTheme('sunset')" class="p-2 rounded-lg bg-gradient-to-r from-orange-500 to-pink-500 text-[9px]">Sunset</button>
-                        <button onclick="setProfileTheme('forest')" class="p-2 rounded-lg bg-gradient-to-r from-emerald-500 to-green-600 text-[9px]">Forest</button>
-                        <button onclick="setProfileTheme('royal')" class="p-2 rounded-lg bg-gradient-to-r from-amber-500 to-yellow-600 text-[9px]">Royal</button>
-                        <button onclick="setProfileTheme('midnight')" class="p-2 rounded-lg bg-gradient-to-r from-violet-900 to-purple-900 text-[9px]">Midnight</button>
-                        <button onclick="setProfileTheme('cherry')" class="p-2 rounded-lg bg-gradient-to-r from-rose-500 to-red-600 text-[9px]">Cherry</button>
-                    </div>
-                </div>
-
-                <!-- Name Color -->
-                <div class="bg-[#2b2d31] rounded-2xl p-3 border border-[#3f4247] space-y-2">
-                    <p class="uppercase text-[10px] text-slate-400 font-semibold">Name Color</p>
-                    <div class="grid grid-cols-4 gap-2">
-                        <button onclick="setNameColor('default')" class="p-2 rounded-lg bg-slate-600 text-[9px] text-white">Default</button>
-                        <button onclick="setNameColor('rainbow')" class="p-2 rounded-lg name-rainbow text-[9px]">Rainbow</button>
-                        <button onclick="setNameColor('red')" class="p-2 rounded-lg name-red text-[9px]">Red</button>
-                        <button onclick="setNameColor('blue')" class="p-2 rounded-lg name-blue text-[9px]">Blue</button>
-                        <button onclick="setNameColor('green')" class="p-2 rounded-lg name-green text-[9px]">Green</button>
-                        <button onclick="setNameColor('purple')" class="p-2 rounded-lg name-purple text-[9px]">Purple</button>
-                        <button onclick="setNameColor('pink')" class="p-2 rounded-lg name-pink text-[9px]">Pink</button>
-                        <button onclick="setNameColor('golden')" class="p-2 rounded-lg golden-text text-[9px]">Golden</button>
-                    </div>
-                </div>
-
-                <!-- Custom Status -->
-                <div class="bg-[#2b2d31] rounded-2xl p-3 border border-[#3f4247] space-y-2">
-                    <p class="uppercase text-[10px] text-slate-400 font-semibold">Custom Status</p>
-                    <div class="flex gap-2 mb-2">
-                        <select id="statusEmoji" class="px-2 py-2 rounded-lg bg-[#1e1f22] border border-[#3f4247] text-[11px] outline-none">
-                            <option value="">😀</option>
-                            <option value="🎮">🎮</option>
-                            <option value="💰">💰</option>
-                            <option value="🔨">🔨</option>
-                            <option value="😴">😴</option>
-                            <option value="🍕">🍕</option>
-                            <option value="💎">💎</option>
-                            <option value="🔥">🔥</option>
-                            <option value="💤">💤</option>
-                        </select>
-                        <input id="statusTextInput" type="text" placeholder="What's happening?" maxlength="32" class="flex-1 px-3 py-2 rounded-lg bg-[#1e1f22] border border-[#3f4247] text-[11px] outline-none">
-                    </div>
-                    <button onclick="setCustomStatus()" class="w-full py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-[11px] font-semibold">Set Status</button>
-                    <button onclick="clearCustomStatus()" class="w-full py-2 rounded-xl bg-[#313338] hover:bg-[#3f4147] text-[11px]">Clear Status</button>
-                </div>
-            </div>
-        </div>
-    </div>
     </body>
-    </html>
+</html>
