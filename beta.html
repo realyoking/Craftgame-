@@ -1,4 +1,4 @@
-DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -131,32 +131,6 @@ DOCTYPE html>
         #sidebarControls {
             padding-bottom: calc(1rem + env(safe-area-inset-bottom));
         }
-
-        /* Accessible, animated sidebar visibility */
-        #sidebar {
-            transition: opacity 300ms ease, transform 200ms ease;
-        }
-        #sidebar.hc-sidebar-hidden {
-            opacity: 0;
-            pointer-events: none;
-        }
-        @media (max-width: 767px) {
-            #sidebar.hc-sidebar-hidden {
-                transform: translateX(-100%);
-            }
-        }
-
-        .sr-only {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            padding: 0;
-            margin: -1px;
-            overflow: hidden;
-            clip: rect(0, 0, 0, 0);
-            white-space: nowrap;
-            border: 0;
-        }
     </style>
     <!-- Firebase (Realtime Database + Auth) -->
     <script type="module">
@@ -217,8 +191,6 @@ DOCTYPE html>
 </head>
 <body class="bg-slate-50 transition-colors duration-500" id="bodyRoot">
 
-<div id="srAnnouncements" class="sr-only" aria-live="polite" aria-atomic="true"></div>
-
 <!-- Global announcement bar -->
 <div id="announcementBar" class="fixed top-3 left-1/2 -translate-x-1/2 z-[0] hidden w-[min(640px,calc(100%-24px))]">
     <div class="bg-slate-900 text-white rounded-2xl shadow-2xl border border-white/10 px-4 py-3 flex items-start justify-between gap-3">
@@ -237,7 +209,7 @@ DOCTYPE html>
 
 <div class="flex h-screen w-full overflow-hidden">
     <!-- Sidebar -->
-    <div id="sidebar" class="relative w-20 md:w-80 bg-white border-r border-slate-200 flex flex-col z-40" role="complementary" aria-label="Main navigation sidebar" aria-hidden="false">
+    <div id="sidebar" class="relative w-20 md:w-80 bg-white border-r border-slate-200 flex flex-col z-40">
 
         <div class="p-4 md:p-6 border-b">
             <h1 class="text-xl md:text-2xl font-black text-indigo-600 flex items-center gap-2">
@@ -1268,62 +1240,6 @@ DOCTYPE html>
     let animationFrameId = null;
     let chatScreenOpen = false;
 
-    // Centralized UI/sidebar visibility state
-    const UI_AUTH_ROUTES = new Set(['login', 'register', 'reset', 'reset-password', '2fa', 'verify-2fa']);
-    const uiState = {
-        sidebarVisible: true,
-        activeRoute: 'home',
-        openModals: new Set()
-    };
-
-    function uiDeriveRouteFromLocation() {
-        const raw = (location.hash || '').toLowerCase().replace(/^#/, '');
-        return raw || 'home';
-    }
-
-    function uiUpdateSidebarVisibility() {
-        const sidebar = document.getElementById('sidebar');
-        const sr = document.getElementById('srAnnouncements');
-        if (!sidebar) return;
-
-        const isAuthRoute = UI_AUTH_ROUTES.has(uiState.activeRoute);
-        const hasOpenModals = uiState.openModals.size > 0;
-        const shouldBeVisible = !isAuthRoute && !hasOpenModals;
-
-        uiState.sidebarVisible = shouldBeVisible;
-
-        if (shouldBeVisible) {
-            sidebar.classList.remove('hc-sidebar-hidden');
-            sidebar.setAttribute('aria-hidden', 'false');
-            if (sr) sr.textContent = 'Sidebar visible.';
-        } else {
-            sidebar.classList.add('hc-sidebar-hidden');
-            sidebar.setAttribute('aria-hidden', 'true');
-            if (sr) sr.textContent = 'Sidebar hidden.';
-        }
-    }
-
-    function uiSyncRouteFromLocation() {
-        uiState.activeRoute = uiDeriveRouteFromLocation();
-        uiUpdateSidebarVisibility();
-    }
-
-    // Global modal open/close events so any overlay can affect sidebar
-    window.addEventListener('ui:modal-open', (event) => {
-        const id = event.detail && event.detail.id;
-        if (id) uiState.openModals.add(id);
-        uiUpdateSidebarVisibility();
-    });
-
-    window.addEventListener('ui:modal-close', (event) => {
-        const id = event.detail && event.detail.id;
-        if (id) uiState.openModals.delete(id);
-        uiUpdateSidebarVisibility();
-    });
-
-    window.addEventListener('hashchange', uiSyncRouteFromLocation);
-    document.addEventListener('DOMContentLoaded', uiSyncRouteFromLocation);
-
     // Apply theme immediately
     if (state.theme === 'dark') {
         document.getElementById('bodyRoot').classList.add('theme-dark');
@@ -2222,12 +2138,10 @@ DOCTYPE html>
     function openChatScreen() {
         showChatScreen(true);
         loadChatConversations().catch(() => {});
-        window.dispatchEvent(new CustomEvent('ui:modal-open', { detail: { id: 'chatScreen' } }));
     }
 
     function closeChatScreen() {
         hideChatScreen();
-        window.dispatchEvent(new CustomEvent('ui:modal-close', { detail: { id: 'chatScreen' } }));
     }
 
     function hideChatScreen() {
@@ -2356,25 +2270,21 @@ DOCTYPE html>
         document.getElementById('profileOverlay').classList.remove('hidden');
         loadProfileOverlay(false, viewedProfile);
         document.getElementById('tabProfile').classList.add('tab-active');
-        window.dispatchEvent(new CustomEvent('ui:modal-open', { detail: { id: 'profileOverlay' } }));
     }
 
     function closeProfileOverlay() {
         document.getElementById('profileOverlay').classList.add('hidden');
         document.getElementById('tabProfile').classList.remove('tab-active');
-        window.dispatchEvent(new CustomEvent('ui:modal-close', { detail: { id: 'profileOverlay' } }));
     }
 
     function openMoreOverlay() {
         document.getElementById('moreOverlay').classList.remove('hidden');
         document.getElementById('tabMore').classList.add('tab-active');
-        window.dispatchEvent(new CustomEvent('ui:modal-open', { detail: { id: 'moreOverlay' } }));
     }
 
     function closeMoreOverlay() {
         document.getElementById('moreOverlay').classList.add('hidden');
         document.getElementById('tabMore').classList.remove('tab-active');
-        window.dispatchEvent(new CustomEvent('ui:modal-close', { detail: { id: 'moreOverlay' } }));
     }
 
     function loadProfileOverlay(editing, player = null) {
@@ -3204,7 +3114,6 @@ DOCTYPE html>
             }
             const el = document.getElementById('adminOverlay');
             if (el) el.classList.remove('hidden');
-            window.dispatchEvent(new CustomEvent('ui:modal-open', { detail: { id: 'adminOverlay' } }));
             lucide.createIcons();
         });
     }
@@ -3212,7 +3121,6 @@ DOCTYPE html>
     function closeAdminOverlay() {
         const el = document.getElementById('adminOverlay');
         if (el) el.classList.add('hidden');
-        window.dispatchEvent(new CustomEvent('ui:modal-close', { detail: { id: 'adminOverlay' } }));
     }
 
     function adminSetError(msg) {
@@ -5118,6 +5026,8 @@ DOCTYPE html>
 
         // Blackjack
         let blackjackGame = null;
+        let bjTurnTimerId = null;
+        let bjTurnDeadline = null;
         function renderBlackjackMenu() {
             const el = document.getElementById('miniGameContent');
             if (!el) return;
@@ -5131,13 +5041,109 @@ DOCTYPE html>
         function renderBlackjackGame() {
             const el=document.getElementById('miniGameContent'); if(!el||!blackjackGame) return;
             const ps=calculateHand(blackjackGame.playerHand), ds=calculateHand(blackjackGame.dealerHand);
-            if(blackjackGame.phase==='betting'){el.innerHTML=`<div class="space-y-4 text-center"><p class="text-[12px] text-slate-400">Bet amount</p><input id="bjBet" type="number" min="1" max="${state.coins}" placeholder="Bet" class="w-40 px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-center"><p class="text-[10px]">Bal: ${state.coins}c</p><button onclick="placeBJBet()" class="px-6 py-2 rounded-xl bg-emerald-600">Bet</button></div>`;}
-            else { const over=blackjackGame.phase==='ended'; el.innerHTML=`<div class="space-y-4"><div class="p-3 rounded-xl bg-slate-900 border border-slate-800"><p class="text-[10px] text-slate-500">Dealer (${over?ds:'?'})</p><div class="flex">${blackjackGame.dealerHand.map((c,i)=>(i===1&&!over)?'<div class="w-10 h-14 bg-slate-700 rounded-lg border-2 border-slate-600 mx-0.5 flex items-center justify-center text-slate-500">?</div>':renderCard(c)).join('')}</div></div><div class="p-3 rounded-xl bg-slate-900 border border-slate-800"><p class="text-[10px] text-slate-500">You (${ps})</p><div class="flex">${blackjackGame.playerHand.map(c=>renderCard(c)).join('')}</div>${ps>21?'<p class="text-rose-400 font-bold">BUST!</p>':''}</div><div class="text-center"><p class="font-bold">Bet: ${blackjackGame.bet}c</p>${!over&&ps<=21?`<div class="flex justify-center gap-2"><button onclick="bjHit()" class="px-4 py-2 rounded-lg bg-emerald-600">Hit</button><button onclick="bjStand()" class="px-4 py-2 rounded-lg bg-rose-600">Stand</button></div>`:over?`<p class="font-bold">${bjResult()}</p><button onclick="startBlackjackVsBot()" class="px-4 py-2 rounded-lg bg-indigo-600">Again</button>`:''}</div></div>`; }
+            if(blackjackGame.phase==='betting'){
+                el.innerHTML=`<div class="space-y-4 text-center">
+                    <p class="text-[12px] text-slate-400">Bet amount</p>
+                    <input id="bjBet" type="number" min="1" max="${state.coins}" placeholder="Bet" class="w-40 px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-center">
+                    <p class="text-[10px]">Bal: ${state.coins}c</p>
+                    <button onclick="placeBJBet()" class="px-6 py-2 rounded-xl bg-emerald-600">Bet</button>
+                </div>`;
+            } else {
+                const over=blackjackGame.phase==='ended';
+                el.innerHTML=`<div class="space-y-4">
+                    <div class="p-3 rounded-xl bg-slate-900 border border-slate-800">
+                        <p class="text-[10px] text-slate-500">Dealer (${over?ds:'?'})</p>
+                        <div class="flex">
+                            ${blackjackGame.dealerHand.map((c,i)=>(i===1&&!over)
+                                ?'<div class="w-10 h-14 bg-slate-700 rounded-lg border-2 border-slate-600 mx-0.5 flex items-center justify-center text-slate-500">?</div>'
+                                :renderCard(c)
+                            ).join('')}
+                        </div>
+                    </div>
+                    <div class="p-3 rounded-xl bg-slate-900 border border-slate-800">
+                        <p class="text-[10px] text-slate-500">You (${ps})</p>
+                        <div class="flex">${blackjackGame.playerHand.map(c=>renderCard(c)).join('')}</div>
+                        ${ps>21?'<p class="text-rose-400 font-bold">BUST!</p>':''}
+                    </div>
+                    <div class="text-center">
+                        <p class="font-bold">Bet: ${blackjackGame.bet}c</p>
+                        <p id="bjTimer" class="text-[10px] text-rose-400 mt-1"></p>
+                        ${!over&&ps<=21
+                            ?`<div class="flex justify-center gap-2 mt-2">
+                                <button onclick="bjHit()" class="px-4 py-2 rounded-lg bg-emerald-600">Hit</button>
+                                <button onclick="bjStand()" class="px-4 py-2 rounded-lg bg-rose-600">Stand</button>
+                              </div>`
+                            :over?`<p class="font-bold">${bjResult()}</p><button onclick="startBlackjackVsBot()" class="px-4 py-2 rounded-lg bg-indigo-600">Again</button>`:''
+                        }
+                    </div>
+                </div>`;
+            }
         }
-        function placeBJBet(){const amt=Number(document.getElementById('bjBet')?.value||0);if(!amt||amt<=0){showToast('Enter bet');return;}if(amt>state.coins){showToast('No coins');return;}blackjackGame.bet=amt;state.coins-=amt;blackjackGame.phase='playing';updateUI();renderBlackjackGame();if(calculateHand(blackjackGame.playerHand)===21){showToast('Blackjack!');bjStand();}}
-        function bjHit(){blackjackGame.playerHand.push(blackjackGame.deck.pop());renderBlackjackGame();if(calculateHand(blackjackGame.playerHand)>21)endBJ(false);}
-        function bjStand(){while(calculateHand(blackjackGame.dealerHand)<17)blackjackGame.dealerHand.push(blackjackGame.deck.pop());const ps=calculateHand(blackjackGame.playerHand),ds=calculateHand(blackjackGame.dealerHand);endBJ(ps<=21&&(ds>21||ps>ds));}
-        function endBJ(win){blackjackGame.phase='ended';if(win){state.coins+=blackjackGame.bet*2;showToast(`Won ${blackjackGame.bet*2}c`);}else{showToast(`Lost ${blackjackGame.bet}c`);}updateUI();renderBlackjackGame();}
+        function startBjTurnTimer(){
+            if(bjTurnTimerId) clearInterval(bjTurnTimerId);
+            bjTurnDeadline = Date.now() + 10000;
+            const update = () => {
+                const el = document.getElementById('bjTimer');
+                if(!el){ clearInterval(bjTurnTimerId); bjTurnTimerId=null; return; }
+                const remaining = bjTurnDeadline - Date.now();
+                if(remaining <= 0){
+                    el.textContent = 'Time up! You lost this round.';
+                    clearInterval(bjTurnTimerId);
+                    bjTurnTimerId = null;
+                    endBJ(false);
+                    return;
+                }
+                const secs = Math.ceil(remaining/1000);
+                el.textContent = `Time left: ${secs}s`;
+            };
+            update();
+            bjTurnTimerId = setInterval(update, 300);
+        }
+        function clearBjTurnTimer(){
+            if(bjTurnTimerId){ clearInterval(bjTurnTimerId); bjTurnTimerId=null; }
+            bjTurnDeadline = null;
+        }
+        function placeBJBet(){
+            const amt=Number(document.getElementById('bjBet')?.value||0);
+            if(!amt||amt<=0){showToast('Enter bet');return;}
+            if(amt>state.coins){showToast('Not enough coins');return;}
+            blackjackGame.bet=amt;
+            state.coins-=amt;
+            blackjackGame.phase='playing';
+            updateUI();
+            renderBlackjackGame();
+            startBjTurnTimer();
+            if(calculateHand(blackjackGame.playerHand)===21){
+                showToast('Blackjack!');
+                bjStand();
+            }
+        }
+        function bjHit(){
+            blackjackGame.playerHand.push(blackjackGame.deck.pop());
+            renderBlackjackGame();
+            if(calculateHand(blackjackGame.playerHand)>21){
+                clearBjTurnTimer();
+                endBJ(false);
+            }
+        }
+        function bjStand(){
+            clearBjTurnTimer();
+            while(calculateHand(blackjackGame.dealerHand)<17)blackjackGame.dealerHand.push(blackjackGame.deck.pop());
+            const ps=calculateHand(blackjackGame.playerHand),ds=calculateHand(blackjackGame.dealerHand);
+            endBJ(ps<=21&&(ds>21||ps>ds));
+        }
+        function endBJ(win){
+            blackjackGame.phase='ended';
+            clearBjTurnTimer();
+            if(win){
+                state.coins+=blackjackGame.bet*2;
+                showToast(`Won ${blackjackGame.bet*2}c`);
+            }else{
+                showToast(`Lost ${blackjackGame.bet}c`);
+            }
+            updateUI();
+            renderBlackjackGame();
+        }
         function bjResult(){const ps=calculateHand(blackjackGame.playerHand),ds=calculateHand(blackjackGame.dealerHand);if(ps>21)return'Bust! Lose';if(ds>21)return'Dealer Bust! Win';if(ps>ds)return'Win!';if(ds>ps)return'Lose';return'Tie';}
 
         // Multiplayer Fight
@@ -5458,7 +5464,6 @@ DOCTYPE html>
             }
             el.classList.remove('hidden');
             document.getElementById('tabDaily')?.classList.add('tab-active');
-            window.dispatchEvent(new CustomEvent('ui:modal-open', { detail: { id: 'dailyRewardsOverlay' } }));
             try {
                 await loadDailyRewardsData();
             } catch (e) {
@@ -5471,7 +5476,6 @@ DOCTYPE html>
             const el = document.getElementById('dailyRewardsOverlay');
             if (el) el.classList.add('hidden');
             document.getElementById('tabDaily')?.classList.remove('tab-active');
-            window.dispatchEvent(new CustomEvent('ui:modal-close', { detail: { id: 'dailyRewardsOverlay' } }));
         }
 
         let dailyRewardTimer = null;
@@ -5910,7 +5914,6 @@ DOCTYPE html>
             el.classList.remove('hidden');
             lucide.createIcons();
             await loadClanData();
-            window.dispatchEvent(new CustomEvent('ui:modal-open', { detail: { id: 'clansOverlay' } }));
         }
 
         function closeClansOverlay() {
@@ -5920,7 +5923,6 @@ DOCTYPE html>
                 clanChatUnsub();
                 clanChatUnsub = null;
             }
-            window.dispatchEvent(new CustomEvent('ui:modal-close', { detail: { id: 'clansOverlay' } }));
         }
 
         async function loadClanData() {
